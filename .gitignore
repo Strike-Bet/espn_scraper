@@ -1,0 +1,46 @@
+# Ignore virtual environment
+/myenv
+
+# Byte-compiled Python files
+*.pyc
+*.pyo
+*.pyd
+
+# Cache and logs
+__pycache__/
+*.log
+*.tmp
+
+# Environment variables
+.env
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# IDE-related files
+.vscode/
+.idea/
+
+# macOS-specific files
+.DS_Store
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+
+# Testing-related
+.pytest_cache/
+.tox/
+.nox/
+
+# Build files
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Temporary files
+*.swp
+*.swo
+*~
