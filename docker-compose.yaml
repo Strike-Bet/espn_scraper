@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: python_scraper
+    volumes:
+      - .:/app  # Mount the current directory to the container's /app for development
+    ports:
+      - "8000:8000"  # Map port 8000 (optional, useful for exposing an API later)
+    networks:
+      - espn_scraper_network  # Attach to a custom Docker network
+    environment:
+      - PYTHONUNBUFFERED=1  # Ensures real-time logging in Docker
+
+networks:
+  espn_scraper_network:
+    driver: bridge  # Default bridge network allows communication between containers and external endpoints
