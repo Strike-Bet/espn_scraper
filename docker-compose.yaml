@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: python_scraper
+    volumes:
+      - .:/app  
+    ports:
+      - "8000:8000"  
+    networks:
+      - espn_scraper_network  
+    environment:
+      - PYTHONUNBUFFERED=1  
+
+networks:
+  espn_scraper_network:
+    driver: bridge
