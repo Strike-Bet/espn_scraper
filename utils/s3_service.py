@@ -101,8 +101,8 @@ def upload_to_s3(
     """
     s3_service = S3Service()
 
-    # If data is a dict, convert to JSON string
-    if isinstance(data, dict):
+    # Convert data to JSON string if it's a dict or any other object
+    if not isinstance(data, (str, bytes)):
         data = json.dumps(data, indent=2)
 
     # Add timestamp to path if requested
@@ -110,11 +110,9 @@ def upload_to_s3(
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         path_parts = s3_path.rsplit(".", 1)
         s3_path = f"{path_parts[0]}_{timestamp}.{path_parts[1]}"
-        print('s3_path', s3_path)
 
     try:
-        s3_service.upload_file(data, s3_path)
+        return s3_service.upload_file(data, s3_path)
     except Exception as e:
         print(f"Error uploading to s3: {e}")
         return False
-    return True

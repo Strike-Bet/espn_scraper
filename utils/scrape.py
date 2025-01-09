@@ -2,7 +2,7 @@ import requests
 import datetime
 import json
 
-def scrape_games():
+def scrape_games(current_date):
     """
     Scrapes NBA games for the current date and extracts game IDs.
     
@@ -10,8 +10,7 @@ def scrape_games():
         set: Set of game IDs for today's games
     """
     # Get the current date in the required format: YYYYMMDD
-    current_date = datetime.datetime.now().strftime("%Y%m%d")
-
+    current_date = current_date.strftime("%Y%m%d")
     # URL with the current date
     url = f"https://site.web.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?region=us&lang=en&contentorigin=espn&calendartype=offdays&includeModules=videos&dates={current_date}&tz=America%2FNew_York"
 
@@ -48,4 +47,9 @@ def scrape_games():
     else:
         print(f"Failed to fetch data. HTTP Status Code: {response.status_code}")
     
+
+    with open("game_ids.txt", "w") as file:
+        for game_id in game_ids:
+            file.write(f"{game_id}\n")
+
     return game_ids

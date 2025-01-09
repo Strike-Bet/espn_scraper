@@ -12,9 +12,6 @@ BOXSCORE_URL = os.getenv('BOXSCORE_URL')
 GO_BACKEND_URL = os.getenv('GO_BACKEND_URL')
 
 
-current_date = datetime.utcnow()  # Use UTC time to avoid discrepancies
-formatted_date = current_date.strftime("%Y-%m-%dT00:00:00Z")
-
 GAMEID_STATUS = {}
 
 
@@ -72,78 +69,86 @@ def parse_players(players_data):
 
     return all_players
 
-def fetch_and_process_boxscores(game_ids: Set[str]):
+def process_game_status(event: dict, game_id: str, current_date: datetime) -> None:
+    """Process game status from event data and update GAMEID_STATUS."""
+    event_date = event.get("date", "")
+    event_datetime = datetime.strptime(event_date, "%Y-%m-%dT%H:%M:%SZ")
+    
+    # Check if event is within current day or next day (UTC differences)
+    if current_date.date() <= event_datetime.date() <= (current_date + timedelta(days=1)).date():
+        status_name = event.get("statusType", {}).get("name", "")
+        GAMEID_STATUS[game_id] = status_name
+        print(f"Game {game_id} status: {status_name}")
+
+def handle_player_data(game_id: str, parsed_players: list) -> None:
+    """Handle player data based on game status."""
+    status = GAMEID_STATUS.get(game_id)
+    
+    if status == "STATUS_FINAL":
+        print(f"Game {game_id} is final")
+        close_bet(parsed_players)
+    elif status == "STATUS_IN_PROGRESS":
+        print(f"Game {game_id} is in progress")
+        update_results(parsed_players)
+    else:
+        print(f"Game {game_id} is not final")
+
+def fetch_and_process_boxscores(game_ids: Set[str], current_date: datetime, testing: bool = False) -> dict:
     """
     Fetches boxscore data for game IDs, extracts player data, and saves it to a final JSON file.
     """
-
     all_data = {}
 
     for game_id in game_ids:
+        # Skip if game is already final
         if GAMEID_STATUS.get(game_id) == "STATUS_FINAL":
+            print(f"Game {game_id} is final")
             continue
 
-        
+        # Fetch boxscore data
         url = f"{BOXSCORE_URL}/boxscore?xhr=1&gameId={game_id}"
         response = requests.get(url)
 
-        if response.status_code == 200:
-            print(f"Processing gameId: {game_id}")
-            data = response.json()
-
-            # save boxscore to s3
-            try:
-                upload_status = upload_to_s3(data, f"NBA/NBA_BOXSCORES/boxscore_{game_id}.json")
-                print(f"Boxscore uploaded to s3: {upload_status}")
-            except Exception as e:
-                print(f"Error uploading boxscore to s3: {e}")
-
-            # Step 2: Extract events safely
-            events = data.get("gamepackageJSON", {}).get("seasonseries", [{}])[0].get("events", [])
-
-            # Step 3: Process each event
-            for event in events:
-                # Step 4: Extract the event date
-                event_date = event.get("date", "")
-                
-                # Step 5: Check if the event date is within the same day or the next day (to account for UTC differences)
-                event_datetime = datetime.strptime(event_date, "%Y-%m-%dT%H:%M:%SZ")
-                if current_date.date() <= event_datetime.date() <= (current_date + timedelta(days=1)).date():
-                    
-                    # Extract and handle the `statusType`
-                    status_type = event.get("statusType", {})
-                    status_name = status_type.get("name", "")
-
-                    GAMEID_STATUS[game_id] = status_name
-                    print(f"Game {game_id} status: {status_name}")
-                    
-
-            players_data = extract_players(data)
-
-            if len(players_data) == 2:
-                # upload player data to s3
-                upload_to_s3(players_data, f"NBA/PLAYERDATA/players_{game_id}.json",)
-
-                # Parse players and add to the final dataset
-                team_0_abbrev = players_data[0]["team"]["abbreviation"]
-                team_1_abbrev = players_data[1]["team"]["abbreviation"]
-                parsed_players = parse_players(players_data, team_0_abbrev, team_1_abbrev)
-
-                all_data[game_id] = parsed_players
-
-                if game_id in GAMEID_STATUS and GAMEID_STATUS[game_id] == "STATUS_FINAL":
-                    #close the game
-                    print(f"Game {game_id} is final")
-                    close_bet(game_id, parsed_players)
-                elif game_id in GAMEID_STATUS and GAMEID_STATUS[game_id] == "STATUS_IN_PROGRESS":
-                    print(f"Game {game_id} is in progress")
-                    update_results(game_id, parsed_players)
-                else:
-                    print(f"Game {game_id} is not final")
-            else:
-                if game_id in GAMEID_STATUS and GAMEID_STATUS[game_id] == "STATUS_SCHEDULED":
-                    print(f"Game {game_id} has not started yet")
-                else:
-                    print(f"Error: Player data not found for game {game_id}")
-        else:
+        if response.status_code != 200:
             print(f"Failed to fetch data for gameId {game_id}: {response.status_code}")
+            continue
+
+        print(f"Processing gameId: {game_id}")
+        data = response.json()
+
+        # Upload boxscore to S3
+        try:
+            upload_status = upload_to_s3(data, f"NBA/NBA_BOXSCORES/boxscore_{game_id}.json")
+            print(f"Boxscore uploaded to s3: {upload_status}")
+        except Exception as e:
+            print(f"Error uploading boxscore to s3: {e}")
+
+        # Process game events and status
+        events = data.get("gamepackageJSON", {}).get("seasonseries", [{}])[0].get("events", [])
+
+        #for testing 
+        if testing: 
+            for event in events: 
+                event["statusType"]["name"] = "STATUS_IN_PROGRESS"
+
+
+        for event in events:
+            process_game_status(event, game_id, current_date)
+
+        # Process player data
+        players_data = extract_players(data)
+        if len(players_data) != 2:
+            if GAMEID_STATUS.get(game_id) == "STATUS_SCHEDULED":
+                print(f"Game {game_id} has not started yet")
+            else:
+                print(f"Error: Player data not found for game {game_id}")
+            continue
+
+        # Upload and process player data
+        upload_to_s3(players_data, f"NBA/PLAYERDATA/players_{game_id}.json")
+        parsed_players = parse_players(players_data)
+        all_data[game_id] = parsed_players
+        
+        handle_player_data(game_id, parsed_players)
+
+    return all_data
