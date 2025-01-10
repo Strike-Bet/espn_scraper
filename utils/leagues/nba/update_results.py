@@ -14,7 +14,7 @@ headers = {
 
 
 
-def update_results(parsed_players):
+def update_results(parsed_players, closed):
 
     STAT_MAP = {
         "Minutes": "minutes",
@@ -108,11 +108,19 @@ def update_results(parsed_players):
                                 continue
 
                 # updates the betting line with the result 
-                response = requests.put(f"{GO_BACKEND_URL}/betting-events/{event_id}", headers=headers, json={"result": str(result)})
+                if closed: 
+                    response = requests.post(f"{GO_BACKEND_URL}/betting-events/{event_id}/complete", headers=headers, json={"result": str(result)})
+                    if response.status_code == 200:
+                        print(f"Betting line {event_id} closed successfully")
+                    else:
+                        print(f"Failed to close betting line {event_id}: {response.status_code}")
 
-                if response.status_code == 200:
-                    print(f"Betting line {event_id} updated successfully")
-                else:
-                    print(f"Failed to update betting line {event_id}: {response.status_code}")
+                else: 
+                    response = requests.put(f"{GO_BACKEND_URL}/betting-events/{event_id}", headers=headers, json={"result": str(result)})
+
+                    if response.status_code == 200:
+                        print(f"Betting line {event_id} updated successfully")
+                    else:
+                        print(f"Failed to update betting line {event_id}: {response.status_code}")
 
     return 
