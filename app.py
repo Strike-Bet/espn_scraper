@@ -1,39 +1,44 @@
 from flask import Flask
 from flask_cors import CORS
-from utils import scrape_games
-from utils import fetch_and_process_boxscores
-from dotenv import load_dotenv
+from utils.leagues.nba import scraper as nba_scraper
+from utils.leagues.nfl import scraper as nfl_scraper
+from utils.leagues.nba import processor as nba_processor
+from utils.leagues.nfl import processor as nfl_processor
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
 
 load_dotenv()
-
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/espn-scraper", methods=['GET'])
-def extract_boxscore_espn():
+@app.route("/espn-scraper-nfl", methods=['GET'])
+def extract_boxscore_espn_nfl():
     try:
-        # initial parameters
         current_date = datetime.now()
-        
-        game_ids = scrape_games(current_date)
-        fetch_and_process_boxscores(game_ids=game_ids, current_date=current_date, testing=False)
-        return {"message": "Boxscores extracted and processed successfully!"}
+        game_ids = nfl_scraper.extract_nfl_game_ids(current_date)
+        nfl_processor.process_boxscores(game_ids, current_date)
+        return {"message": "NFL boxscores processed successfully!"}
     except Exception as e:
         return {"error": str(e)}
-    
 
-@app.route("/espn-scraper-testing", methods=['GET'])
-def extract_boxscore_espn_testing():
+@app.route("/espn-scraper-nba", methods=['GET'])
+def extract_boxscore_espn_nba():
     try:
-        # initial parameters
         current_date = datetime.now() - timedelta(days=1)
+        game_ids = nba_scraper.scrape_games(current_date)
+        nba_processor.process_boxscores(game_ids, current_date, testing=True)
+        return {"message": "NBA boxscores processed successfully!"}
+    except Exception as e:
+        return {"error": str(e)}
 
-        game_ids = scrape_games(current_date)
-        fetch_and_process_boxscores(game_ids=game_ids, current_date=current_date, testing=True)
-        return {"message": "Boxscores extracted and processed successfully!"}
+@app.route("/test-processors", methods=['GET'])
+def test_processors():
+    try:
+        from utils.leagues.testing.test_processor import run_test
+        run_test()
+        return {"message": "Test processing completed successfully!"}
     except Exception as e:
         return {"error": str(e)}
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5001)
