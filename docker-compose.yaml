@@ -10,11 +10,12 @@ services:
       - .:/app  
     ports:
       - "8000:8000"  
-    networks:
-      - espn_scraper_network  
     environment:
       - PYTHONUNBUFFERED=1  
+    networks:
+      - app-network
 
 networks:
-  espn_scraper_network:
+  app-network:
+    name: app-network
     driver: bridge
