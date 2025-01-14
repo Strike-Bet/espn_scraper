@@ -40,5 +40,13 @@ def test_processors():
     except Exception as e:
         return {"error": str(e)}
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    current_time = datetime.utcnow().isoformat() + 'Z'  # Get current UTC time in ISO format
+    return {
+        "message": "Endpoint hit",
+        "timestamp": current_time
+    }, 200
+
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=8000)

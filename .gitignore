@@ -1,5 +1,6 @@
 # Ignore virtual environment
 /myenv
+/venv
 
 # Byte-compiled Python files
 *.pyc
