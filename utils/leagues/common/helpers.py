@@ -121,3 +121,37 @@ NBA_STAT_MAP = {
     # Fantasy Score
     "Fantasy Score": {"key": "fantasy", "calculator": calculate_fantasy_score}
 }
+
+
+NFL_STAT_MAP = {
+    # Passing
+    "Pass Yards": "passingYards",
+    "Pass TDs": "passingTouchdowns",
+    "Pass Attempts": "passingAttempts",
+    "Pass Completions": "completions",
+    "INT": "interceptions",
+
+    # Rushing
+    "Rush Yards": "rushingYards",
+    "Rush Yards in First 5 Attempts": "rushingYardsFirst5Attempts",
+    "Rush TDs": "rushingTouchdowns",
+    "Rush Attempts": "rushingAttempts",
+    "Longest Rush": "longRushing",
+
+    # Receiving
+    "Receptions": "receptions",
+    "Receiving Yards": "receivingYards",
+    "Longest Reception": "longReception",
+
+    # Combos
+    "Pass+Rush Yds": "passingYards+rushingYards",
+    "Rush+Rec Yds": "rushingYards+receivingYards",
+    "Rush+Rec TDs": "rushingTouchdowns+receivingTouchdowns",
+
+    # Kicking
+    "FG Made": "fieldGoalsMade",
+    "Kicking Points": "kickingPoints",
+
+    # Fantasy
+    "Fantasy Score": "fantasyScore"
+}

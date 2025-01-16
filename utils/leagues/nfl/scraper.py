@@ -18,14 +18,13 @@ def scrape_games(current_date: datetime) -> set:
             events = data.get("events", [])
             
             if len(events) > 0:
-                print(f"Found NFL games on {check_date.strftime('%Y%m%d')}")
                 for event in events:
                     for competition in event.get("competitions", []):
                         if game_id := competition.get("id"):
                             game_ids.add(game_id)
-                            print(f"Found NFL game ID: {game_id}")
                 break  # Found games, stop searching
             else:
                 print(f"No NFL games on {check_date.strftime('%Y%m%d')}")
-    
+
+    game_ids = sorted(list(game_ids))
     return game_ids

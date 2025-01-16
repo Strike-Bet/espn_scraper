@@ -56,10 +56,10 @@ def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
         logger.error(f"Error processing game {game_id}: {str(e)}")
         return None
 
-def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float) -> Optional[Dict]:
+def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, testing: str) -> Optional[Dict]:
     """Update or complete a betting event based on game status."""
     try:
-        if player_stats["game_status"] == STATUS_FINAL and event["in_progress"]:
+        if (player_stats["game_status"] == STATUS_FINAL and event["in_progress"]) or testing == "complete":
             response = requests.post(
                 f"{os.getenv('BACKEND_URL')}/api/betting-events/{event['event_id']}/complete",
                 headers=get_headers(),
@@ -67,8 +67,8 @@ def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float) -
             )
             response.raise_for_status()
             return None
-        elif player_stats["game_status"] == STATUS_IN_PROGRESS:
-            return {**event, "result": updated_stat, "in_progress": True}
+        elif player_stats["game_status"] == STATUS_IN_PROGRESS or testing == "in_progress":
+            return {**event, "result": str(updated_stat), "in_progress": True}
         return None
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to update betting event {event['event_id']}: {str(e)}")
@@ -76,17 +76,21 @@ def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float) -
 
 def calculate_stat_value(stat_type: Union[str, dict, list], player_stats: Dict) -> float:
     """Calculate the stat value based on the stat type."""
+
     if isinstance(stat_type, list):
         return sum(player_stats[stat] for stat in stat_type)
     elif isinstance(stat_type, dict):
         if stat_type.get("calculator"):
             return stat_type["calculator"](player_stats)
         raw_stat = player_stats[stat_type["key"]]
+        
         return parse_shot_stats(raw_stat, stat_type["made"])
+        
     return player_stats[stat_type]
 
-def process_boxscores(game_ids: Set[str], current_date: datetime) -> Dict:
+def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str) -> Dict:
     """Process all game boxscores and update betting events."""
+
     players = {}
     for game_id in game_ids:
         game_data = process_game_data(game_id, current_date)
@@ -103,22 +107,25 @@ def process_boxscores(game_ids: Set[str], current_date: datetime) -> Dict:
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to fetch active betting events: {str(e)}")
         return players
+    
 
     new_betting_events = []
     for event in betting_events:
         if event["is_complete"] or event["player_name"] not in players:
             continue
-
+   
         stat_type = NBA_STAT_MAP.get(event["stat_type"])
         if not stat_type:
             logger.warning(f"Stat type {event['stat_type']} not found in NBA_STAT_MAP")
             continue
 
         updated_stat = calculate_stat_value(stat_type, players[event["player_name"]])
-        updated_event = update_betting_event(event, players[event["player_name"]], updated_stat)
+        updated_event = update_betting_event(event, players[event["player_name"]], updated_stat, testing)
         
         if updated_event:
             new_betting_events.append(updated_event)
+
+        
 
     if new_betting_events:
         try:
