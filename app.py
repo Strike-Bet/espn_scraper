@@ -26,7 +26,7 @@ def extract_boxscore_espn_nba():
     try:
         current_date = datetime.now() - timedelta(days=1)
         game_ids = nba_scraper.scrape_games(current_date)
-        nba_processor.process_boxscores(game_ids, current_date, testing=False)
+        nba_processor.process_boxscores(game_ids, current_date)
         return {"message": "NBA boxscores processed successfully!"}
     except Exception as e:
         return {"error": str(e)}

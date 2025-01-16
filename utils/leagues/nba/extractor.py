@@ -69,11 +69,14 @@ def extract_game_data(game_id: str) -> Dict:
         
     return response.json()
 
-def extract_game_status(event: Dict, current_date: datetime) -> str:
+def extract_game_status(events: Dict, current_date: datetime) -> str:
     """Extract game status from event data."""
-    event_date = event.get("date", "")
-    event_datetime = datetime.strptime(event_date, "%Y-%m-%dT%H:%M:%SZ")
-    
-    if current_date.date() <= event_datetime.date() <= (current_date + timedelta(days=1)).date():
-        return event.get("statusType", {}).get("name", "")
-    return STATUS_SCHEDULED
+
+    for event in events:
+        event_date = event.get("date", "")
+        event_datetime = datetime.strptime(event_date, "%Y-%m-%dT%H:%M:%SZ")
+        
+        if current_date.date() <= event_datetime.date() <= (current_date + timedelta(days=1)).date():
+            return event.get("statusType", {}).get("name", "")
+        
+    return None

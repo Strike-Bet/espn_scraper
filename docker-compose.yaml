@@ -11,3 +11,9 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
+    networks:
+      - app-network
+  
+networks:
+  app-network:
+    external: true

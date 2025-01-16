@@ -20,5 +20,6 @@ def scrape_games(current_date: datetime) -> set:
             for competition in event.get("competitions", []):
                 if game_id := competition.get("id"):
                     game_ids.add(game_id)
+    game_ids = sorted(list(game_ids))
     print(game_ids)
     return game_ids
