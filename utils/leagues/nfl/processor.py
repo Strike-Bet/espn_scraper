@@ -14,7 +14,7 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing: bool 
         
         try:
             # Skip if game is already final
-            if game_statuses.get(game_id) == STATUS_FINAL and not testing:
+            if game_statuses.get(game_id) == STATUS_FINAL:
                 print(f"Game {game_id} is final")
                 continue
 
@@ -22,21 +22,14 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing: bool 
             data = extract_game_data(game_id)
 
             # Upload raw boxscore to S3 if not testing
-            if not testing:
-                upload_to_s3(data, f"NFL/NFL_BOXSCORES/boxscore_{game_id}.json")
+            upload_to_s3(data, f"NFL/NFL_BOXSCORES/boxscore_{game_id}.json")
 
             # Process game events and status
             event = data.get("gamepackageJSON", {}).get("header", [{}]).get("competitions", [])[0]
-            
-            # Override status for testing
-            if testing:
-                event["status"]["type"]["name"] = STATUS_IN_PROGRESS
-                print(f"Testing mode: Setting game {game_id} status to {STATUS_IN_PROGRESS}")
-
-            # Update game status
-            
+           
+            # Update game status 
             status = extract_game_status(event, current_date)
-            game_statuses[game_id] = status if not testing else STATUS_IN_PROGRESS
+            game_statuses[game_id] = status
 
             
 

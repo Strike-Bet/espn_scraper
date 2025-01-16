@@ -45,7 +45,7 @@ def update_results(parsed_players, closed):
 
     
     for player in parsed_players:
-
+        print(f"Processing player: {player.get('player_name')}")
         player_name = player.get('player_name')
 
         try:    

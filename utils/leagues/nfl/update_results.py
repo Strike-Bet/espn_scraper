@@ -1,7 +1,7 @@
 import requests
 import os
 
-GO_BACKEND_URL = os.getenv('GO_BACKEND_URL')
+GO_BACKEND_URL = "https://strike-backend-go-3d276c098706.herokuapp.com/api"
 headers = {
     'Content-Type': 'application/json',
     'Authorization': f'Bearer {os.getenv("TOKEN")}'
