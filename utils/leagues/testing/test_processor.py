@@ -72,7 +72,7 @@ def run_test():
         }
     ]
     
-    response = requests.post(f"{os.getenv('GO_BACKEND_URL')}/betting-events/bulk", headers=headers, json=sample_betting_events_nba)
+    response = requests.post(f"{os.getenv('GO_BACKEND_URL')}/api/betting-events/bulk", headers=headers, json=sample_betting_events_nba)
     print(response.text)
 
     if response.status_code != 201:  
@@ -134,7 +134,7 @@ def run_test():
             }
     ]
 
-    response = requests.post(f"{os.getenv('GO_BACKEND_URL')}/betting-events/bulk", headers=headers, json=sample_betting_events_nfl)
+    response = requests.post(f"{os.getenv('GO_BACKEND_URL')}/api/betting-events/bulk", headers=headers, json=sample_betting_events_nfl)
 
     if response.status_code != 201:  
         print(f"Failed to create betting events: {response.status_code} {response.text}")

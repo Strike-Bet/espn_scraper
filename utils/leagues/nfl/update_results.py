@@ -1,7 +1,7 @@
 import requests
 import os
 
-GO_BACKEND_URL = "https://strike-backend-go-3d276c098706.herokuapp.com/api"
+GO_BACKEND_URL = os.getenv('GO_BACKEND_URL')
 headers = {
     'Content-Type': 'application/json',
     'Authorization': f'Bearer {os.getenv("TOKEN")}'
@@ -66,7 +66,7 @@ def update_results(parsed_players, closed):
         # 1) Fetch betting events for this player.
         try:
             response = requests.post(
-                url=f"{GO_BACKEND_URL}/betting-events/by-player",
+                url=f"{GO_BACKEND_URL}/api/betting-events/by-player",
                 headers=headers,
                 json={"player_name": player_name}
             )
@@ -85,7 +85,7 @@ def update_results(parsed_players, closed):
 
         # 2) Process each bet event
         for event_id in event_ids:
-            event_resp = requests.get(f"{GO_BACKEND_URL}/betting-events/{event_id}", headers=headers)
+            event_resp = requests.get(f"{GO_BACKEND_URL}/api/betting-events/{event_id}", headers=headers)
             if event_resp.status_code != 200:
                 print(f"[ERROR] Could not get event {event_id}, status code {event_resp.status_code}")
                 continue
@@ -124,7 +124,7 @@ def update_results(parsed_players, closed):
             # 3) Update or close the betting event
             if closed:
                 close_resp = requests.post(
-                    f"{GO_BACKEND_URL}/betting-events/{event_id}/complete",
+                    f"{GO_BACKEND_URL}/api/betting-events/{event_id}/complete",
                     headers=headers,
                     json={"result": str(result)}
                 )
@@ -134,7 +134,7 @@ def update_results(parsed_players, closed):
                     print(f"[ERROR] Failed to close betting line {event_id}, status={close_resp.status_code}")
             else:
                 update_resp = requests.put(
-                    f"{GO_BACKEND_URL}/betting-events/{event_id}",
+                    f"{GO_BACKEND_URL}/api/betting-events/{event_id}",
                     headers=headers,
                     json={"result": str(result)}
                 )

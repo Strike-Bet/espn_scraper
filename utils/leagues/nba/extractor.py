@@ -76,4 +76,7 @@ def extract_game_status(event: Dict, current_date: datetime) -> str:
     
     if current_date.date() <= event_datetime.date() <= (current_date + timedelta(days=1)).date():
         return event.get("statusType", {}).get("name", "")
+
+    if event_datetime < current_date:
+        return STATUS_FINAL
     return STATUS_SCHEDULED

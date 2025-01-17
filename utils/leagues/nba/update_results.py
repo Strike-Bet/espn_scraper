@@ -49,7 +49,7 @@ def update_results(parsed_players, closed):
         player_name = player.get('player_name')
 
         try:    
-            response = requests.post(url=f"{GO_BACKEND_URL}/betting-events/by-player", headers=headers, json={'player_name': player_name})
+            response = requests.post(url=f"{GO_BACKEND_URL}/api/betting-events/by-player", headers=headers, json={'player_name': player_name})
         except Exception as e:
             print("Error getting betting events")
             continue
@@ -63,7 +63,7 @@ def update_results(parsed_players, closed):
             
 
             for event_id in event_ids:
-                response = requests.get(f"{GO_BACKEND_URL}/betting-events/{event_id}", headers=headers)
+                response = requests.get(f"{GO_BACKEND_URL}/api/betting-events/{event_id}", headers=headers)
                 
                 # gets the stat type of the betting line e.g. "Points+Rebounds"
                 desired_stat_type = response.json()["stat_type"]
@@ -109,14 +109,14 @@ def update_results(parsed_players, closed):
 
                 # updates the betting line with the result 
                 if closed: 
-                    response = requests.post(f"{GO_BACKEND_URL}/betting-events/{event_id}/complete", headers=headers, json={"result": str(result)})
+                    response = requests.post(f"{GO_BACKEND_URL}/api/betting-events/{event_id}/complete", headers=headers, json={"result": str(result)})
                     if response.status_code == 200:
                         print(f"Betting line {event_id} closed successfully")
                     else:
                         print(f"Failed to close betting line {event_id}: {response.status_code}")
 
                 else: 
-                    response = requests.put(f"{GO_BACKEND_URL}/betting-events/{event_id}", headers=headers, json={"result": str(result)})
+                    response = requests.put(f"{GO_BACKEND_URL}/api/betting-events/{event_id}", headers=headers, json={"result": str(result)})
 
                     if response.status_code == 200:
                         print(f"Betting line {event_id} updated successfully")
