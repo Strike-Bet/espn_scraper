@@ -14,3 +14,6 @@ LEAGUE_ENDPOINTS = {
     "nba": f"{ESPN_BASE_URL}/basketball/nba/scoreboard",
     "nfl": f"{ESPN_BASE_URL}/football/nfl/scoreboard"
 }
+
+NFL_LEAGUE_ID = 9
+NBA_LEAGUE_ID = 7

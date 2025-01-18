@@ -5,7 +5,7 @@ import os
 import requests
 import logging
 from .extractor import extract_game_data, extract_players, parse_players, extract_game_status
-from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULED
+from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULED, NBA_LEAGUE_ID
 from utils.s3_service import upload_to_s3
 from ..common.helpers import parse_shot_stats, get_headers, NBA_STAT_MAP
 
@@ -119,6 +119,9 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str) 
     new_betting_events = []
     print("\nProcessing betting events...")
     for event in betting_events:
+        if event["league"] != NBA_LEAGUE_ID:
+            continue
+
         print(f"\nChecking event for {event['player_name']} - {event['stat_type']}")
         
         if event["is_complete"]:
