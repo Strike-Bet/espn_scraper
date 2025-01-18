@@ -5,7 +5,7 @@ import json
 import requests
 import logging
 from .extractor import extract_game_data, extract_players, parse_players, extract_game_status
-from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULED
+from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULED, NFL_LEAGUE_ID
 from utils.s3_service import upload_to_s3
 from ..common.helpers import get_headers, NFL_STAT_MAP
 
@@ -95,15 +95,19 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str) 
             headers=get_headers()
         )
         response.raise_for_status()
+
         betting_events = response.json()
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to fetch active betting events: {str(e)}")
         return players
+    
+
 
 
     new_betting_events = []
     for event in betting_events:
-
+        if event["league"] != NFL_LEAGUE_ID:
+            continue
         if event["is_complete"] or event["player_name"] not in players:
             continue
         
