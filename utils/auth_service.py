@@ -8,8 +8,8 @@ load_dotenv()
 class AuthService:
     def __init__(self):
         self.server_url = os.getenv("BACKEND_URL")
-        self.email = "admin@strikebet.app"
-        self.password = "admin"
+        self.email = "ronitrjain@gmail.com"
+        self.password = "MaggieWalker1!"
         self._token = None
 
         print(self.server_url, self.email, self.password)
@@ -31,13 +31,35 @@ class AuthService:
                 }
             )
             
+            if response.status_code == 401:
+                self._register()
+                return self._login()
+            
             if response.status_code != 200:
                 raise Exception(f"Login failed: {response.status_code} {response.text}")
+            
             
             return response.json()["token"]
             
         except Exception as e:
             raise Exception(f"Authentication failed: {str(e)}")
+        
+    def _register(self) -> Optional[str]:
+        """Register a new user with the backend server"""
+        try:
+            response = requests.post(
+                f"{self.server_url}/register",
+                json={
+                    "email": "espn_scraper@strikebet.app",
+                    "password": "espn_scraper"
+                }
+            )
+            if response.status_code != 200:
+                raise Exception(f"Registration failed: {response.status_code} {response.text}")
+            
+            return response.json()["token"]
+        except Exception as e:
+            raise Exception(f"Registration failed: {str(e)}")
 
 # Create a singleton instance
 auth_service = AuthService() 

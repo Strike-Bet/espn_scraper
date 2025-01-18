@@ -90,53 +90,78 @@ def calculate_stat_value(stat_type: Union[str, dict, list], player_stats: Dict) 
 
 def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str) -> Dict:
     """Process all game boxscores and update betting events."""
+    print(f"\nProcessing NBA boxscores for {len(game_ids)} games...")
+    print(f"Testing mode: {testing}")
 
     players = {}
     for game_id in game_ids:
+        print(f"\nProcessing game {game_id}...")
         game_data = process_game_data(game_id, current_date)
         if game_data:
+            print(f"Found {len(game_data)} players with stats")
             players.update(game_data)
+        else:
+            print(f"No game data found for game {game_id}")
 
     try:
+        print("\nFetching active betting events...")
         response = requests.get(
             f"{os.getenv('BACKEND_URL')}/api/betting-events/active",
             headers=get_headers()
         )
         response.raise_for_status()
         betting_events = response.json()
+        print(f"Found {len(betting_events)} active betting events")
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to fetch active betting events: {str(e)}")
         return players
-    
 
     new_betting_events = []
+    print("\nProcessing betting events...")
     for event in betting_events:
-        if event["is_complete"] or event["player_name"] not in players:
+        print(f"\nChecking event for {event['player_name']} - {event['stat_type']}")
+        
+        if event["is_complete"]:
+            print("Event is already complete, skipping")
+            continue
+        
+        if event["player_name"] not in players:
+            print("Player not found in game data, skipping")
             continue
    
         stat_type = NBA_STAT_MAP.get(event["stat_type"])
         if not stat_type:
-            logger.warning(f"Stat type {event['stat_type']} not found in NBA_STAT_MAP")
+            print(f"Stat type {event['stat_type']} not found in NBA_STAT_MAP")
             continue
 
+        print("Calculating updated stat value...")
         updated_stat = calculate_stat_value(stat_type, players[event["player_name"]])
+        print(f"New stat value: {updated_stat}")
+        
+        print("Updating betting event...")
         updated_event = update_betting_event(event, players[event["player_name"]], updated_stat, testing)
         
         if updated_event:
+            print("Event updated successfully")
             new_betting_events.append(updated_event)
+        else:
+            print("No update needed or event completed")
 
-        
-
+    print(f"\nProcessed all events. {len(new_betting_events)} events to update")
+    
     if new_betting_events:
         try:
+            print("Sending bulk update request...")
             response = requests.post(
                 f"{os.getenv('BACKEND_URL')}/api/betting-events/bulk",
                 headers=get_headers(),
                 json=new_betting_events
             )
             response.raise_for_status()
+            print("Bulk update successful")
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to bulk update betting events: {str(e)}")
+            print(f"Bulk update failed: {str(e)}")
 
     return players
 
