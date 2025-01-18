@@ -56,10 +56,10 @@ def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
         logger.error(f"Error processing game {game_id}: {str(e)}")
         return None
 
-def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, testing: str) -> Optional[Dict]:
+def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, testing_mode, testing: str) -> Optional[Dict]:
     """Update or complete a betting event based on game status."""
     try:
-        if (player_stats["game_status"] == STATUS_FINAL and event["in_progress"]) or testing == "complete":
+        if (player_stats["game_status"] == STATUS_FINAL and event["in_progress"]) or testing_mode and testing == "complete":
             response = requests.post(
                 f"{os.getenv('BACKEND_URL')}/api/betting-events/{event['event_id']}/complete",
                 headers=get_headers(),
@@ -67,7 +67,7 @@ def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, t
             )
             response.raise_for_status()
             return None
-        elif player_stats["game_status"] == STATUS_IN_PROGRESS or testing == "in_progress":
+        elif player_stats["game_status"] == STATUS_IN_PROGRESS or testing_mode and testing == "in_progress":
             return {**event, "result": str(updated_stat), "in_progress": True}
         return None
     except requests.exceptions.RequestException as e:
@@ -88,7 +88,7 @@ def calculate_stat_value(stat_type: Union[str, dict, list], player_stats: Dict) 
         
     return player_stats[stat_type]
 
-def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str) -> Dict:
+def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: bool, testing: str) -> Dict:
     """Process all game boxscores and update betting events."""
     print(f"\nProcessing NBA boxscores for {len(game_ids)} games...")
     print(f"Testing mode: {testing}")
@@ -139,7 +139,7 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str) 
         print(f"New stat value: {updated_stat}")
         
         print("Updating betting event...")
-        updated_event = update_betting_event(event, players[event["player_name"]], updated_stat, testing)
+        updated_event = update_betting_event(event, players[event["player_name"]], updated_stat, testing_mode, testing)
         
         if updated_event:
             print("Event updated successfully")
