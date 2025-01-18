@@ -14,8 +14,8 @@ CORS(app)
 @app.route("/espn-scraper-nfl", methods=['GET'])
 def extract_boxscore_espn_nfl():
     try:
-        current_date = datetime.now() - timedelta(days=1)
-        game_ids = nfl_scraper.scrape_games(current_date)
+        current_date = datetime.now()
+        game_ids = nfl_scraper.scrape_games(current_date) - timedelta(days=1)
         nfl_processor.process_boxscores(game_ids, current_date, testing_mode = False,testing="")
         return {"message": "NFL boxscores processed successfully!"}
     except Exception as e:
