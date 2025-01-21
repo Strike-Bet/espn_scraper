@@ -62,7 +62,7 @@ def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, t
             response.raise_for_status()
             return None
         elif (player_stats["game_status"] == STATUS_IN_PROGRESS) or (testing == "in_progress"):
-            return {**event, "result": str(updated_stat), "in_progress": True}
+            return {**event, "result": str(updated_stat), "in_progress": True, "is_closed": True}
         return None
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to update betting event {event['event_id']}: {str(e)}")
