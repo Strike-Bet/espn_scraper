@@ -70,7 +70,7 @@ def test_nba_processing():
     print(f"Found {len(nba_game_ids)} NBA games")
     
     print("Processing NBA games (in_progress)...")
-    nba_process(nba_game_ids, current_date, testing="in_progress")
+    nba_process(nba_game_ids, current_date, testing_mode=True, testing="in_progress")
     
     print("Verifying NBA event updates (in_progress)...")
     for event in created_events:
@@ -86,7 +86,7 @@ def test_nba_processing():
         print(f"NBA event {event['event_id']} verified - Result: {updated_event.get('result')}")
 
     print("\nProcessing NBA games (complete)...")
-    nba_process(nba_game_ids, current_date, testing="complete")
+    nba_process(nba_game_ids, current_date, testing_mode=True, testing="complete")
 
     print("Verifying NBA event updates (complete)...")
     for event in created_events:
@@ -161,7 +161,7 @@ def test_nfl_processing():
     print(f"Found {len(nfl_game_ids)} NFL games")
     
     print("Processing NFL games (in_progress)...")
-    nfl_process(nfl_game_ids, current_date, testing="in_progress")
+    nfl_process(nfl_game_ids, current_date, testing_mode=True, testing="in_progress")
     
     print("Verifying NFL event updates (in_progress)...")
     for event in created_events:
@@ -178,7 +178,7 @@ def test_nfl_processing():
         print(f"NFL event {event['event_id']} verified - Result: {updated_event.get('result')}")
 
     print("\nProcessing NFL games (complete)...")
-    nfl_process(nfl_game_ids, current_date, testing="complete")
+    nfl_process(nfl_game_ids, current_date, testing_mode=True, testing="complete")
 
     
     print("Verifying NFL event updates (complete)...", created_events)

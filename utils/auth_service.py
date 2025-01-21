@@ -8,8 +8,8 @@ load_dotenv()
 class AuthService:
     def __init__(self):
         self.server_url = os.getenv("BACKEND_URL")
-        self.email = "ronitrjain@gmail.com"
-        self.password = "MaggieWalker1!"
+        self.email = "espn_scraper@strikebet.app"
+        self.password = "espnScraper1!"
         self._token = None
 
         print(self.server_url, self.email, self.password)
@@ -50,8 +50,9 @@ class AuthService:
             response = requests.post(
                 f"{self.server_url}/register",
                 json={
+                    "username": "espn_scraper",
                     "email": "espn_scraper@strikebet.app",
-                    "password": "espn_scraper"
+                    "password": "espnScraper1!"
                 }
             )
             if response.status_code != 200:
