@@ -17,7 +17,7 @@ def parse_players(players_data):
     Each team's data contains statistics grouped by category (passing, rushing, receiving, etc.)
     """
     all_players = []
-    
+
     for team_data in players_data:
         team_abbrev = team_data["team"]["abbreviation"]
         # Get the other team's abbreviation from the next/previous team data
@@ -25,6 +25,7 @@ def parse_players(players_data):
         
         # Process each statistic category (passing, rushing, receiving)
         for stat_category in team_data.get("statistics", []):
+
             category_name = stat_category.get("name", "")
             stat_keys = stat_category.get("keys", [])
             
@@ -36,10 +37,18 @@ def parse_players(players_data):
                 # Convert stats array to our standard format
                 player_stats_list = []
                 athlete_stats = athlete.get("stats", [])
+
+                if "adjQBR" in stat_keys and len(athlete_stats) < len(stat_keys):
+                    athlete_stats.append(athlete_stats[-1])
                 
                 if athlete_stats and len(athlete_stats) == len(stat_keys):
                     for key, stat_value in zip(stat_keys, athlete_stats):
+                        if player_name == "Patrick Mahomes":
+                            print(key, stat_value)
                         player_stats_list.append([key, key, stat_value])
+                else: 
+                    print(player_name, stat_keys, athlete_stats)
+            
                 
                 player_dict = {
                     "team": team_abbrev,
@@ -56,7 +65,6 @@ def parse_players(players_data):
                     },
                     "player_statistics": player_stats_list
                 }
-                
                 # Check if player already exists (might have stats in multiple categories)
                 existing_player = next(
                     (p for p in all_players if p["player_name"] == player_name), 

@@ -81,7 +81,7 @@ def calculate_stat_value(stat_type: str, player_stats: Dict) -> float:
         return 0
     return float(player_stats.get(stat_type, 0))
 
-def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str) -> Dict:
+def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str, testing_mode: bool) -> Dict:
     """Process all game boxscores and update betting events."""
     players = {}
     for game_id in game_ids:
