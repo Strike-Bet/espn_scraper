@@ -6,7 +6,7 @@ from utils.leagues.nba import processor as nba_processor
 from utils.leagues.nfl import processor as nfl_processor
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-
+import pytz
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
@@ -14,7 +14,7 @@ CORS(app)
 @app.route("/espn-scraper-nfl", methods=['GET'])
 def extract_boxscore_espn_nfl():
     try:
-        current_date = datetime(2025, 1, 25)
+        current_date = datetime.now(pytz.timezone('US/Pacific'))
         game_ids = nfl_scraper.scrape_games(current_date)
         nfl_processor.process_boxscores(game_ids, current_date, testing_mode = False,testing="")
         return {"message": "NFL boxscores processed successfully!"}
@@ -24,7 +24,7 @@ def extract_boxscore_espn_nfl():
 @app.route("/espn-scraper-nba", methods=['GET'])
 def extract_boxscore_espn_nba():
     try:
-        current_date = datetime.now() - timedelta(days=1)
+        current_date = datetime.now(pytz.timezone('US/Pacific'))
         game_ids = nba_scraper.scrape_games(current_date)
         nba_processor.process_boxscores(game_ids, current_date, testing_mode = False, testing="")
         return {"message": "NBA boxscores processed successfully!"}
