@@ -12,23 +12,32 @@ import json
 logger = logging.getLogger(__name__)
 
 def process_player_stats(player_stats: list) -> dict:
-    """Process raw player statistics into a formatted dictionary."""
-    return {
-        'MIN': int(player_stats[0][2]),  # "3"
-        '+/-': int(player_stats[1][2]),  # "+1"
-        'FG': player_stats[2][2],        # "1-1"
-        '3PT': player_stats[3][2],       # "0-0"
-        'FT': player_stats[4][2],        # "0-0"
-        'OREB': int(player_stats[5][2]), # "0"
-        'DREB': int(player_stats[6][2]), # "1"
-        'REB': int(player_stats[7][2]),  # "1"
-        'AST': int(player_stats[8][2]),  # "1"
-        'STL': int(player_stats[9][2]),  # "0"
-        'BLK': int(player_stats[10][2]), # "0"
-        'TO': int(player_stats[11][2]),  # "0"
-        'PF': int(player_stats[12][2]),  # "0"
-        'PTS': int(player_stats[13][2]), # "2"
-    }
+    """
+    Process raw player statistics into a formatted dictionary.
+    Each stat in player_stats is a list of [stat_name, abbreviation, value]
+    """
+    stats_dict = {}
+    
+    for stat in player_stats:
+        stat_name = stat[1]  # Use abbreviation as key
+        stat_value = stat[2]  # Raw value
+        
+        # Handle special cases
+        if stat_name in ['FG', '3PT', 'FT']:
+            # These stay as strings (e.g. "1-9")
+            stats_dict[stat_name] = stat_value
+        elif stat_name == '+/-':
+            # Remove '+' sign if present and convert to int
+            stats_dict[stat_name] = int(stat_value.replace('+', ''))
+        else:
+            # Convert all other stats to integers
+            try:
+                stats_dict[stat_name] = int(stat_value)
+            except ValueError:
+                stats_dict[stat_name] = 0
+    
+    return stats_dict
+
 
 def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
     """Process individual game data and return player statistics."""
@@ -45,6 +54,9 @@ def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
         players_data = extract_players(data)
         parsed_players = parse_players(players_data)
         upload_to_s3(parsed_players, f"NBA/PLAYERDATA/players_{game_id}.json")
+        
+        with open(f"players_{game_id}.json", "w") as f:
+            json.dump(parsed_players, f)
 
         return {
             player["player_name"]: {**process_player_stats(player["player_statistics"]), 
