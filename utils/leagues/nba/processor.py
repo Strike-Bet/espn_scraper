@@ -46,8 +46,8 @@ def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
         events = data.get("gamepackageJSON", {}).get("seasonseries", [{}])[0].get("events", [])
 
         game_status = extract_game_status(events, current_date)
-        with open(f"events_{game_id}.json", "w") as f:
-            json.dump(events, f)
+        # with open(f"events_{game_id}.json", "w") as f:
+        #     json.dump(events, f)
 
         if game_status is None:
             logger.warning(f"Did not find game status for game {game_id}")
@@ -57,8 +57,8 @@ def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
         parsed_players = parse_players(players_data)
         upload_to_s3(parsed_players, f"NBA/PLAYERDATA/players_{game_id}.json")
         
-        with open(f"players_{game_id}.json", "w") as f:
-            json.dump(parsed_players, f)
+        # with open(f"players_{game_id}.json", "w") as f:
+        #     json.dump(parsed_players, f)
 
         return {
             player["player_name"]: {**process_player_stats(player["player_statistics"]), 
