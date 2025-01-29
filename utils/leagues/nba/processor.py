@@ -46,6 +46,8 @@ def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
         events = data.get("gamepackageJSON", {}).get("seasonseries", [{}])[0].get("events", [])
 
         game_status = extract_game_status(events, current_date)
+        with open(f"events_{game_id}.json", "w") as f:
+            json.dump(events, f)
 
         if game_status is None:
             logger.warning(f"Did not find game status for game {game_id}")
@@ -72,7 +74,7 @@ def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
 def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, testing_mode, testing: str) -> Optional[Dict]:
     """Update or complete a betting event based on game status."""
     try:
-        if (player_stats["game_status"] == STATUS_FINAL and event["in_progress"]) or testing_mode and testing == "complete":
+        if (player_stats["game_status"] == STATUS_FINAL) or testing_mode and testing == "complete":
             response = requests.post(
                 f"{os.getenv('BACKEND_URL')}/api/betting-events/{event['event_id']}/complete",
                 headers=get_headers(),
