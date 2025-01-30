@@ -46,8 +46,8 @@ def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
         events = data.get("gamepackageJSON", {}).get("seasonseries", [{}])[0].get("events", [])
 
         game_status = extract_game_status(events, current_date)
-        # with open(f"events_{game_id}.json", "w") as f:
-        #     json.dump(events, f)
+        
+        print(f"Game status: {game_status}, {game_id}")
 
         if game_status is None:
             logger.warning(f"Did not find game status for game {game_id}")
@@ -56,9 +56,7 @@ def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
         players_data = extract_players(data)
         parsed_players = parse_players(players_data)
         upload_to_s3(parsed_players, f"NBA/PLAYERDATA/players_{game_id}.json")
-        
-        # with open(f"players_{game_id}.json", "w") as f:
-        #     json.dump(parsed_players, f)
+
 
         return {
             player["player_name"]: {**process_player_stats(player["player_statistics"]), 
@@ -82,7 +80,7 @@ def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, t
             )
             response.raise_for_status()
             return None
-        elif player_stats["game_status"] == STATUS_IN_PROGRESS or testing_mode and testing == "in_progress":
+        elif (player_stats["game_status"] == STATUS_IN_PROGRESS) or (testing_mode and testing == "in_progress"):
             return {**event, "result": str(updated_stat), "in_progress": True, "is_closed": True}
         return None
     except requests.exceptions.RequestException as e:
@@ -112,6 +110,8 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
     for game_id in game_ids:
         print(f"\nProcessing game {game_id}...")
         game_data = process_game_data(game_id, current_date)
+        with open(f"players_{game_id}.json", "w") as f:
+            json.dump(game_data, f)
         if game_data:
             print(f"Found {len(game_data)} players with stats")
             players.update(game_data)

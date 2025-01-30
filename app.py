@@ -24,7 +24,7 @@ def extract_boxscore_espn_nfl():
 @app.route("/espn-scraper-nba", methods=['GET'])
 def extract_boxscore_espn_nba():
     try:
-        current_date = datetime.now(pytz.timezone('US/Pacific')) - timedelta(days=1)
+        current_date = datetime.now(pytz.timezone('US/Pacific'))
         game_ids = nba_scraper.scrape_games(current_date)
         nba_processor.process_boxscores(game_ids, current_date, testing_mode = False, testing="")
         return {"message": "NBA boxscores processed successfully!"}
