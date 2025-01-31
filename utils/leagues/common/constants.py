@@ -18,12 +18,6 @@ LEAGUE_ENDPOINTS = {
 }
 
 
-def get_headers():
-    # Replace this with however you generate or fetch your headers
-    return {
-        "Content-Type": "application/json",
-        "x-hasura-admin-secret": "DHieJhzOpml0wBIbEZC5mvsDdSKMnyMC4b8Kx04p0adKUO0zd2e2LSganKK6CRAb"
-    }
 
 NFL_LEAGUE_ID = 9
 NBA_LEAGUE_ID = 7
