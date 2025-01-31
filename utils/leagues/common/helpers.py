@@ -21,6 +21,14 @@ def get_headers() -> Dict[str, str]:
     }
 
 
+def get_hasura_headers():
+    # Replace this with however you generate or fetch your headers
+    return {
+        "Content-Type": "application/json",
+        "x-hasura-admin-secret": "DHieJhzOpml0wBIbEZC5mvsDdSKMnyMC4b8Kx04p0adKUO0zd2e2LSganKK6CRAb"
+    }
+
+
 def parse_shot_stats(stat_string: str, get_made: bool = True) -> int:
     """
     Parse shot statistics in format "X-Y" where X is made and Y is attempted.

@@ -5,9 +5,9 @@ import os
 import requests
 import logging
 from .extractor import extract_game_data, extract_players, parse_players, extract_game_status
-from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULED, NBA_LEAGUE_ID
+from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULED, NBA_LEAGUE_ID, STATUS_HALFTIME
 from utils.s3_service import upload_to_s3
-from ..common.helpers import parse_shot_stats, get_headers, NBA_STAT_MAP
+from ..common.helpers import parse_shot_stats, get_headers, NBA_STAT_MAP, get_hasura_headers
 import json
 logger = logging.getLogger(__name__)
 
@@ -74,14 +74,14 @@ def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, t
     try:
         if (player_stats["game_status"] == STATUS_FINAL) or testing_mode and testing == "complete":
             response = requests.post(
-                f"{os.getenv('BACKEND_URL')}/api/betting-events/{event['event_id']}/complete",
+                f"{os.getenv('BACKEND_URL')}/action/complete",
                 headers=get_headers(),
-                json={"result": updated_stat}
+                json={"betting_event_id": event["event_id"], "result": updated_stat}
             )
             response.raise_for_status()
             return None
-        elif (player_stats["game_status"] == STATUS_IN_PROGRESS) or (testing_mode and testing == "in_progress"):
-            return {**event, "result": str(updated_stat), "in_progress": True, "is_closed": True}
+        elif (player_stats["game_status"] == STATUS_IN_PROGRESS) or player_stats["game_status"] == STATUS_HALFTIME or (testing_mode and testing == "in_progress"):
+            return {"event_id": event["event_id"], "result_numeric": str(updated_stat), "status": "IN_PROGRESS"}
         return None
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to update betting event {event['event_id']}: {str(e)}")
@@ -168,11 +168,12 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
     print(f"\nProcessed all events. {len(new_betting_events)} events to update")
     
     if new_betting_events:
+        print(new_betting_events)
         try:
             print("Sending bulk update request...")
             response = requests.post(
-                f"{os.getenv('BACKEND_URL')}/api/betting-events/bulk",
-                headers=get_headers(),
+                f"https://lasting-scorpion-21.hasura.app/api/rest/updatebettingeventsmany",
+                headers=get_hasura_headers(),
                 json=new_betting_events
             )
             response.raise_for_status()
