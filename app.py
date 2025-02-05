@@ -146,8 +146,8 @@ def detailed_health():
 
         # Recent jobs status
         query = """
-        query GetRecentJobs {
-          jobs(order_by: {start_time: desc}, limit: 10) {
+        query GetRecentJobsEspn {
+          jobs_espn(order_by: {start_time: desc}, limit: 10) {
             job_id
             task_name
             status
