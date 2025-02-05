@@ -31,4 +31,7 @@ def get_job_status(job_id):
             'ended_at': job.ended_at.isoformat() if job.ended_at else None
         }
     except Exception as e:
+        print("Error fetching job status")
+        print(e)
         return {'error': str(e)} 
+    
