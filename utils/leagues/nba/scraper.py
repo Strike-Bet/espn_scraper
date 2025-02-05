@@ -3,10 +3,12 @@ from ..common.helpers import format_date
 import requests
 import json
 from datetime import datetime
-
+import pytz
 def scrape_games(current_date: datetime) -> set:
     """Scrape NBA games for the given date."""
-    formatted_date = format_date(current_date)
+
+    pst_date = current_date.astimezone(pytz.timezone('US/Pacific'))
+    formatted_date = format_date(pst_date)
     url = f"{LEAGUE_ENDPOINTS['nba']}?dates={formatted_date}"
     
     response = requests.get(url)

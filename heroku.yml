@@ -1,0 +1,10 @@
+setup:
+  addons:
+    - plan: heroku-redis:mini
+build:
+  docker:
+    web: Dockerfile
+    worker: Dockerfile
+run:
+  web: python app.py
+  worker: python worker.py 

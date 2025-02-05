@@ -1,5 +1,6 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
+from rq_scheduler import Scheduler
 from utils.leagues.nba import scraper as nba_scraper
 from utils.leagues.nfl import scraper as nfl_scraper
 from utils.leagues.nba import processor as nba_processor
@@ -7,50 +8,95 @@ from utils.leagues.nfl import processor as nfl_processor
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import pytz
+import os
+from worker import default_queue, get_job_status, redis_conn
+from tasks import scrape_all_games
+from rq.job import Job
+from rq.worker import Worker
+
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/espn-scraper-nfl", methods=['GET'])
-def extract_boxscore_espn_nfl():
-    try:
-        current_date = datetime.now(pytz.timezone('US/Pacific'))
-        game_ids = nfl_scraper.scrape_games(current_date)
-        nfl_processor.process_boxscores(game_ids, current_date, testing_mode = False,testing="")
-        return {"message": "NFL boxscores processed successfully!"}
-    except Exception as e:
-        return {"error": str(e)}
+# Initialize scheduler
+scheduler = Scheduler(queue=default_queue, connection=redis_conn)
 
-@app.route("/espn-scraper-nba", methods=['GET'])
-def extract_boxscore_espn_nba():
+@app.route("/espn-scraper/start", methods=['POST'])
+def start_scraper_job():
+    """Start a new scraper job and schedule recurring execution"""
     try:
-        current_date = datetime.now(pytz.timezone('US/Pacific'))
-        game_ids = nba_scraper.scrape_games(current_date)
-        nba_processor.process_boxscores(game_ids, current_date, testing_mode = False, testing="")
-        return {"message": "NBA boxscores processed successfully!"}
-    except Exception as e:
-        return {"error": str(e)}
+        # Schedule immediate job
+        job = default_queue.enqueue(scrape_all_games)
 
-@app.route("/test-processors", methods=['GET'])
-def test_processors():
-    try:
-        from utils.leagues.testing.test_processor import run_test
-        try: 
-            run_test()
-        except Exception as e:
-            return {"error": str(e)}
         
-        return {"message": "Test processing completed successfully!"}
+        
+        # Schedule recurring job (every 3 minutes)
+        scheduler.schedule(
+            scheduled_time=datetime.now(pytz.timezone('US/Pacific')) + timedelta(minutes=3),
+            func=scrape_all_games,
+            interval=180  # 3 minutes in seconds
+        )
+        
+        return jsonify({
+            'message': 'Scraper job started and scheduled',
+            'job_id': job.id
+        })
     except Exception as e:
-        return {"error": str(e)}
+        return jsonify({'error': str(e)}), 500
+
+@app.route("/espn-scraper/job/<job_id>", methods=['GET'])
+def check_job_status(job_id):
+    """Check status of a specific job"""
+    try:
+        status = get_job_status(job_id)
+        return jsonify(status)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    current_time = datetime.utcnow().isoformat() + 'Z'  # Get current UTC time in ISO format
-    return {
+    current_time = datetime.utcnow().isoformat() + 'Z'
+    return jsonify({
         "message": "Endpoint hit",
         "timestamp": current_time
-    }, 200
+    }), 200
+
+@app.route('/redis-health', methods=['GET'])
+def redis_health():
+    try:
+        redis_conn.ping()
+        return jsonify({
+            "status": "healthy",
+            "message": "Redis connection successful"
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "unhealthy",
+            "error": str(e)
+        }), 500
+
+@app.route('/workers-health', methods=['GET'])
+def workers_health():
+    try:
+        # Convert generator to list before getting length
+        workers = list(Worker.all(connection=redis_conn))
+        scheduler_jobs = list(scheduler.get_jobs())
+
+
+        
+        return jsonify({
+            "status": "healthy",
+            "active_workers": len(workers),
+            "queued_jobs": len(default_queue.jobs),
+            "scheduled_jobs": len(scheduler_jobs),
+            "failed_jobs": len(default_queue.failed_job_registry)
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "unhealthy",
+            "error": str(e)
+        }), 500
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host='0.0.0.0', port=port)

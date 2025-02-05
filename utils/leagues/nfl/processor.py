@@ -7,7 +7,7 @@ import logging
 from .extractor import extract_game_data, extract_players, parse_players, extract_game_status
 from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULED, NFL_LEAGUE_ID
 from utils.s3_service import upload_to_s3
-from ..common.helpers import get_headers, NFL_STAT_MAP
+from ..common.helpers import get_headers, NFL_STAT_MAP, get_hasura_headers
 
 logger = logging.getLogger(__name__)
 
@@ -56,13 +56,13 @@ def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, t
         if (player_stats["game_status"] == STATUS_FINAL and event["in_progress"]) or testing == "complete":
             response = requests.post(
                 f"{os.getenv('BACKEND_URL')}/api/betting-events/{event['event_id']}/complete",
-                headers=get_headers(),
+                headers=get_hasura_headers(),
                 json={"result": updated_stat}
             )
             response.raise_for_status()
             return None
         elif (player_stats["game_status"] == STATUS_IN_PROGRESS) or (testing == "in_progress"):
-            return {**event, "result": str(updated_stat), "in_progress": True, "is_closed": True}
+            return {**event, "actual_result": str(updated_stat), "betting_event_id": event["betting_event_id"]}
         return None
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to update betting event {event['event_id']}: {str(e)}")
@@ -91,7 +91,7 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str, 
 
     try:
         response = requests.get(
-            f"{os.getenv('BACKEND_URL')}/api/betting-events/active",
+            f"{os.getenv('BACKEND_URL')}/api/rest/getactivebettingevents",
             headers=get_headers()
         )
         response.raise_for_status()
@@ -108,7 +108,17 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str, 
     for event in betting_events:
         if event["league"] != NFL_LEAGUE_ID:
             continue
-        if event["is_complete"] or event["player_name"] not in players:
+
+        utc_time = datetime.fromisoformat(event["start_time"].replace('Z', '+00:00'))
+        
+        if event["player_name"] not in players and utc_time < current_date:
+            print("Player not found in game data, categorizing them as DNP")
+            response = requests.post(
+                f"{os.getenv('BACKEND_URL')}/actions/set-dnp",
+                headers=get_hasura_headers(),
+                json={"betting_event_id": event["event_id"]}
+            )
+            response.raise_for_status()
             continue
         
         stat_type = NFL_STAT_MAP.get(event["stat_type"])
