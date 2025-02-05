@@ -162,9 +162,25 @@ def detailed_health():
             headers=job_service.headers
         ).json()["data"]["jobs_espn"]
 
-        print("recent_jobs")
+        #if recent_jobs is empty, set it to an empty list
+        if not recent_jobs:
+            recent_jobs = []
+            return jsonify({
+                "status": "healthy" if redis_healthy else "degraded",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "components": {
+                    "redis": {
+                        "status": "healthy" if redis_healthy else "unhealthy",
+                        "error": redis_error
+                    },
+                    "recent_jobs": recent_jobs
+                }
+            }), 200
 
-        print(recent_jobs)
+        
+
+
+
 
         return jsonify({
             "status": "healthy" if redis_healthy else "degraded",
@@ -181,8 +197,8 @@ def detailed_health():
                 "scheduler": {
                     "job_count": len(scheduler_jobs),
                     "next_jobs": [
-                        {"func": job.func_name, "scheduled_for": job.enqueued_at.isoformat()}
-                        for job in scheduler_jobs[:5]
+                        {"func": job.func_name, "scheduled_for": job.enqueued_at.isoformat() if job is not None else None}
+                        for job in scheduler_jobs[:5] if job is not None
 
                     ]
                 },
