@@ -48,7 +48,7 @@ mutation CreateJob($job_id: uuid!, $task_name: String!, $status: String!, $start
         end_time = datetime.now(timezone.utc).isoformat() if status in ["completed", "failed"] else None
         mutation = """
         mutation UpdateJob($job_id: uuid!, $status: String!, $end_time: timestamptz, $result: jsonb) {
-          update_jobs_by_pk(
+          update_jobs_espn_by_pk(
             pk_columns: {job_id: $job_id}, 
             _set: {
               status: $status, 
@@ -76,7 +76,7 @@ mutation CreateJob($job_id: uuid!, $task_name: String!, $status: String!, $start
     def get_job_details(self, job_id: str) -> Dict[str, Any]:
         query = """
         query GetJob($job_id: uuid!) {
-          jobs_by_pk(job_id: $job_id) {
+          jobs_espn_by_pk(job_id: $job_id) {
             job_id
             task_name
             status
