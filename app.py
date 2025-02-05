@@ -157,7 +157,7 @@ def detailed_health():
         }
         """
         recent_jobs = requests.post(
-            f"{os.getenv('BACKEND_URL')}/v1/graphql",
+            f"https://lasting-scorpion-21.hasura.app/v1/graphql",
             json={"query": query},
             headers=job_service.headers
         ).json()["data"]["jobs"]
