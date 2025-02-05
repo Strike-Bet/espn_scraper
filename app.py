@@ -177,7 +177,7 @@ def detailed_health():
                 "scheduler": {
                     "job_count": len(scheduler_jobs),
                     "next_jobs": [
-                        {"func": job.func_name, "scheduled_for": job.scheduled_time.isoformat()}
+                        {"func": job.func_name, "scheduled_for": datetime.now(pytz.timezone('US/Pacific')).isoformat()}
                         for job in scheduler_jobs[:5]
                     ]
                 },
