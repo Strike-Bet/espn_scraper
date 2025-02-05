@@ -191,6 +191,7 @@ def detailed_health():
             "recent_jobs": recent_jobs
         }), 200
     except Exception as e:
+        print(e)
         return jsonify({
             "status": "unhealthy",
             "error": str(e),
