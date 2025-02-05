@@ -14,6 +14,7 @@ from tasks import scrape_all_games
 from rq.job import Job
 from rq.worker import Worker
 
+
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
@@ -36,6 +37,8 @@ def start_scraper_job():
             func=scrape_all_games,
             interval=180  # 3 minutes in seconds
         )
+
+        print("Job scheduled")
         
         return jsonify({
             'message': 'Scraper job started and scheduled',
