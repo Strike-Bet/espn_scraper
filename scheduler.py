@@ -3,7 +3,7 @@ from redis import Redis
 from tasks import scrape_all_games
 import os
 import ssl
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 
 
@@ -21,7 +21,7 @@ scheduler = Scheduler(connection=redis_conn)
 
 # Schedule jobs
 scheduler.schedule(
-    scheduled_time=datetime.now(pytz.timezone('US/Pacific')),
+    scheduled_time=datetime.now(pytz.timezone('US/Pacific')) + timedelta(minutes=3),
     func=scrape_all_games,
     interval=180  # 3 minutes in seconds
 )
