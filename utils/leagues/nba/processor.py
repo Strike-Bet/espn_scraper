@@ -75,7 +75,7 @@ def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
         logger.error(f"Error processing game {game_id}: {str(e)}")
         return None
 
-def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, testing_mode, testing: str) -> Optional[Dict]:
+def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, testing_mode: bool, testing: str) -> Optional[Dict]:
     """Update or complete a betting event based on game status."""
     try:
         if (player_stats["game_status"] == STATUS_FINAL) or testing_mode and testing == "complete":
