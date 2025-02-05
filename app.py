@@ -160,7 +160,11 @@ def detailed_health():
             f"https://lasting-scorpion-21.hasura.app/v1/graphql",
             json={"query": query},
             headers=job_service.headers
-        ).json()["data"]["jobs"]
+        ).json()["data"]["jobs_espn"]
+
+        print("recent_jobs")
+
+        print(recent_jobs)
 
         return jsonify({
             "status": "healthy" if redis_healthy else "degraded",
