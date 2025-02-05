@@ -13,6 +13,8 @@ from worker import default_queue, get_job_status, redis_conn
 from tasks import scrape_all_games
 from rq.job import Job
 from rq.worker import Worker
+from redis import Redis
+import ssl
 
 
 load_dotenv()
@@ -21,6 +23,17 @@ CORS(app)
 
 # Initialize scheduler
 scheduler = Scheduler(queue=default_queue, connection=redis_conn)
+
+redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
+redis_conn = Redis.from_url(
+    redis_url,
+    ssl_cert_reqs=None,  # Disables certificate verification
+    ssl=True
+)
 
 @app.route("/espn-scraper/start", methods=['POST'])
 def start_scraper_job():
