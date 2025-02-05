@@ -1,10 +1,10 @@
 from redis import Redis
-from rq import Queue, Worker
+from rq import Queue, Worker, Connection
 from rq.job import Job
 import os
 import ssl
 
-# Configure Redis connection
+# Configure Redis connection with SSL
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
@@ -12,11 +12,14 @@ ssl_context.verify_mode = ssl.CERT_NONE
 
 redis_conn = Redis.from_url(
     redis_url,
-    ssl_cert_reqs=None,  # Disables certificate verification
+    ssl_cert_reqs=None,
+    ssl=True
 )
 
 # Create queue
 default_queue = Queue('default', connection=redis_conn)
+
+
 
 def get_job_status(job_id):
     """Get status of a specific job"""
@@ -34,4 +37,10 @@ def get_job_status(job_id):
         print("Error fetching job status")
         print(e)
         return {'error': str(e)} 
+    
+
+if __name__ == '__main__':
+    with Connection(redis_conn):
+        worker = Worker(['default'])
+        worker.work() 
     
