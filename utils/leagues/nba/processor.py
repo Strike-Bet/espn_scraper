@@ -9,6 +9,12 @@ from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULE
 from utils.s3_service import upload_to_s3
 from ..common.helpers import parse_shot_stats, get_headers, NBA_STAT_MAP, get_hasura_headers
 import json
+import pytz
+
+# Create timezone objects
+utc = pytz.UTC
+pacific = pytz.timezone('US/Pacific')
+
 logger = logging.getLogger(__name__)
 
 def process_player_stats(player_stats: list) -> dict:
@@ -79,6 +85,7 @@ def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, t
                 json={"actual_result": updated_stat, "betting_event_id": event["event_id"]}
             )
             response.raise_for_status()
+            print("Event completed successfully")
             return None
         elif (player_stats["game_status"] == STATUS_IN_PROGRESS) or (testing_mode and testing == "in_progress"):
             return {**event, "result": str(updated_stat), "status": "IN_PROGRESS"}
@@ -143,7 +150,9 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
             print("Event is already complete, skipping")
             continue
         
-        if event["player_name"] not in players and event["start_time"] < current_date:
+        utc_time = datetime.fromisoformat(event["start_time"].replace('Z', '+00:00'))
+        pacific_start_time = utc_time.astimezone(pacific)
+        if event["player_name"] not in players and pacific_start_time < current_date:
             print("Player not found in game data, categorizing them as DNP")
             response = requests.post(
                 f"{os.getenv('BACKEND_URL')}/actions/set-dnp",
@@ -151,6 +160,9 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
                 json={"betting_event_id": event["event_id"]}
             )
             response.raise_for_status()
+            continue
+        elif event["player_name"] not in players and pacific_start_time > current_date:
+            print("Player not found in game data, skipping")
             continue
    
         stat_type = NBA_STAT_MAP.get(event["stat_type"])
@@ -166,21 +178,23 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
         updated_event = update_betting_event(event, players[event["player_name"]], updated_stat, testing_mode, testing)
         
         if updated_event:
-            print("Event updated successfully")
             new_betting_events.append(updated_event)
         else:
-            print("No update needed or event completed")
+            print("No update needed")
 
     print(f"\nProcessed all events. {len(new_betting_events)} events to update")
     
     if new_betting_events:
         try:
             print("Sending bulk update request...")
+            print(new_betting_events)
             response = requests.post(
                 f"{os.getenv('BACKEND_URL')}/api/rest/updatebettingeventsmany",
-                headers=get_headers(),
-                json=new_betting_events
+                headers=get_hasura_headers(),
+                json={"updates": new_betting_events}
             )
+
+            print(response.json())
             response.raise_for_status()
             print("Bulk update successful")
         except requests.exceptions.RequestException as e:
