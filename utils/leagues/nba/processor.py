@@ -7,7 +7,7 @@ import logging
 from .extractor import extract_game_data, extract_players, parse_players, extract_game_status
 from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULED, NBA_LEAGUE_ID
 from utils.s3_service import upload_to_s3
-from ..common.helpers import parse_shot_stats, get_headers, NBA_STAT_MAP, get_hasura_headers
+from ..common.helpers import parse_shot_stats, NBA_STAT_MAP, get_hasura_headers
 import json
 import pytz
 
