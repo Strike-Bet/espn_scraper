@@ -7,8 +7,14 @@ import logging
 from .extractor import extract_game_data, extract_players, parse_players, extract_game_status
 from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULED, NBA_LEAGUE_ID
 from utils.s3_service import upload_to_s3
-from ..common.helpers import parse_shot_stats, get_headers, NBA_STAT_MAP
+from ..common.helpers import parse_shot_stats, get_headers, NBA_STAT_MAP, get_hasura_headers
 import json
+import pytz
+
+# Create timezone objects
+utc = pytz.UTC
+pacific = pytz.timezone('US/Pacific')
+
 logger = logging.getLogger(__name__)
 
 def process_player_stats(player_stats: list) -> dict:
@@ -74,14 +80,15 @@ def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, t
     try:
         if (player_stats["game_status"] == STATUS_FINAL) or testing_mode and testing == "complete":
             response = requests.post(
-                f"{os.getenv('BACKEND_URL')}/api/betting-events/{event['event_id']}/complete",
-                headers=get_headers(),
-                json={"result": updated_stat}
+                f"{os.getenv('BACKEND_URL')}/actions/complete-betting-event",
+                headers=get_hasura_headers(),
+                json={"actual_result": updated_stat, "betting_event_id": event["event_id"]}
             )
             response.raise_for_status()
+            print("Event completed successfully")
             return None
         elif (player_stats["game_status"] == STATUS_IN_PROGRESS) or (testing_mode and testing == "in_progress"):
-            return {**event, "result": str(updated_stat), "in_progress": True, "is_closed": True}
+            return {**event, "result": str(updated_stat), "status": "IN_PROGRESS"}
         return None
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to update betting event {event['event_id']}: {str(e)}")
@@ -120,11 +127,11 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
     try:
         print("\nFetching active betting events...")
         response = requests.get(
-            f"{os.getenv('BACKEND_URL')}/api/betting-events/active",
-            headers=get_headers()
+            f"{os.getenv('BACKEND_URL')}/api/rest/getactivebettingevents",
+            headers=get_hasura_headers()
         )
         response.raise_for_status()
-        betting_events = response.json()
+        betting_events = response.json()["betting_events"]
         print(f"Found {len(betting_events)} active betting events")
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to fetch active betting events: {str(e)}")
@@ -133,16 +140,27 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
     new_betting_events = []
     print("\nProcessing betting events...")
     for event in betting_events:
-        if event["league"] != NBA_LEAGUE_ID:
+        if int(event["league"]) != NBA_LEAGUE_ID:
             continue
 
         print(f"\nChecking event for {event['player_name']} - {event['stat_type']}")
         
-        if event["is_complete"]:
+        if event["status"] != "IN_PROGRESS" and event["status"] != "NOT_STARTED":
             print("Event is already complete, skipping")
             continue
         
-        if event["player_name"] not in players:
+        utc_time = datetime.fromisoformat(event["start_time"].replace('Z', '+00:00'))
+        pacific_start_time = utc_time.astimezone(pacific)
+        if event["player_name"] not in players and pacific_start_time < current_date:
+            print("Player not found in game data, categorizing them as DNP")
+            response = requests.post(
+                f"{os.getenv('BACKEND_URL')}/actions/set-dnp",
+                headers=get_hasura_headers(),
+                json={"betting_event_id": event["event_id"]}
+            )
+            response.raise_for_status()
+            continue
+        elif event["player_name"] not in players and pacific_start_time > current_date:
             print("Player not found in game data, skipping")
             continue
    
@@ -159,21 +177,23 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
         updated_event = update_betting_event(event, players[event["player_name"]], updated_stat, testing_mode, testing)
         
         if updated_event:
-            print("Event updated successfully")
             new_betting_events.append(updated_event)
         else:
-            print("No update needed or event completed")
+            print("No update needed")
 
     print(f"\nProcessed all events. {len(new_betting_events)} events to update")
     
     if new_betting_events:
         try:
             print("Sending bulk update request...")
+            print(new_betting_events)
             response = requests.post(
-                f"{os.getenv('BACKEND_URL')}/api/betting-events/bulk",
-                headers=get_headers(),
-                json=new_betting_events
+                f"{os.getenv('BACKEND_URL')}/api/rest/updatebettingeventsmany",
+                headers=get_hasura_headers(),
+                json={"updates": new_betting_events}
             )
+
+            print(response.json())
             response.raise_for_status()
             print("Bulk update successful")
         except requests.exceptions.RequestException as e:
@@ -181,4 +201,6 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
             print(f"Bulk update failed: {str(e)}")
 
     return players
+
+
 

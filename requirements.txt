@@ -25,3 +25,6 @@ urllib3==1.26.20
 werkzeug==3.0.6
 zipp==3.20.2
 zope.interface==7.2.0
+redis==5.0.1
+rq==1.15.1
+rq-scheduler==0.13.1
