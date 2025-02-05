@@ -5,6 +5,7 @@ from utils.leagues.nfl import processor as nfl_processor
 from datetime import datetime
 import pytz
 import logging
+from utils.job_service import JobService
 
 # Configure logging
 logging.basicConfig(
@@ -13,8 +14,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger('espn_scraper')
 
+# Initialize job service
+job_service = JobService()
+
 def scrape_all_games():
     """Background task to scrape both NBA and NFL games"""
+    job_id = job_service.create_job("scrape_all_games")
+    job_service.update_job_status(job_id, "running")
+    
+    try:
+        result = _scrape_all_games()
+        job_service.update_job_status(job_id, "completed", result)
+        return result
+    except Exception as e:
+        error_result = {'error': str(e)}
+        job_service.update_job_status(job_id, "failed", error_result)
+        raise
+
+def _scrape_all_games():
+    """Internal function that does the actual scraping work"""
     job_start_time = datetime.now(pytz.timezone('US/Pacific'))
     logger.info(f"Starting scraper job at {job_start_time}")
     

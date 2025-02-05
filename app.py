@@ -5,7 +5,7 @@ from utils.leagues.nba import scraper as nba_scraper
 from utils.leagues.nfl import scraper as nfl_scraper
 from utils.leagues.nba import processor as nba_processor
 from utils.leagues.nfl import processor as nfl_processor
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import pytz
 import os
@@ -15,6 +15,10 @@ from rq.job import Job
 from rq.worker import Worker
 from redis import Redis
 import ssl
+from utils.job_service import JobService
+import psutil
+import platform
+import requests
 
 
 load_dotenv()
@@ -23,6 +27,9 @@ CORS(app)
 
 # Initialize scheduler
 scheduler = Scheduler(queue=default_queue, connection=redis_conn)
+
+# Initialize job service
+job_service = JobService()
 
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
 ssl_context = ssl.create_default_context()
@@ -110,6 +117,83 @@ def workers_health():
         return jsonify({
             "status": "unhealthy",
             "error": str(e)
+        }), 500
+
+@app.route('/health/detailed', methods=['GET'])
+def detailed_health():
+    try:
+        # System info
+        system_info = {
+            "cpu_percent": psutil.cpu_percent(),
+            "memory_percent": psutil.virtual_memory().percent,
+            "disk_usage": psutil.disk_usage('/').percent,
+            "platform": platform.platform(),
+            "python_version": platform.python_version()
+        }
+
+        # Redis health
+        redis_healthy = False
+        redis_error = None
+        try:
+            redis_conn.ping()
+            redis_healthy = True
+        except Exception as e:
+            redis_error = str(e)
+
+        # Worker status
+        workers = list(Worker.all(connection=redis_conn))
+        scheduler_jobs = list(scheduler.get_jobs())
+
+        # Recent jobs status
+        query = """
+        query GetRecentJobs {
+          jobs(order_by: {start_time: desc}, limit: 10) {
+            job_id
+            task_name
+            status
+            start_time
+            end_time
+          }
+        }
+        """
+        recent_jobs = requests.post(
+            f"{os.getenv('BACKEND_URL')}/v1/graphql",
+            json={"query": query},
+            headers=job_service.headers
+        ).json()["data"]["jobs"]
+
+        return jsonify({
+            "status": "healthy" if redis_healthy else "degraded",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "components": {
+                "redis": {
+                    "status": "healthy" if redis_healthy else "unhealthy",
+                    "error": redis_error
+                },
+                "workers": {
+                    "active_count": len(workers),
+                    "worker_ids": [str(w.key) for w in workers]
+                },
+                "scheduler": {
+                    "job_count": len(scheduler_jobs),
+                    "next_jobs": [
+                        {"func": job.func_name, "scheduled_for": job.scheduled_time.isoformat()}
+                        for job in scheduler_jobs[:5]
+                    ]
+                },
+                "queue": {
+                    "queued_jobs": len(default_queue.jobs),
+                    "failed_jobs": len(default_queue.failed_job_registry)
+                }
+            },
+            "system": system_info,
+            "recent_jobs": recent_jobs
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }), 500
 
 if __name__ == "__main__":
