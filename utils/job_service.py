@@ -16,8 +16,6 @@ class JobService:
         job_id = str(uuid.uuid4())
         start_time = datetime.now(timezone.utc).isoformat()
         mutation = """
-       Assuming that your new table jobs_espn has the same fields as jobs, you can update the mutation by replacing the insert_jobs_one field with insert_jobs_espn_one. Here’s the updated mutation:
-
 mutation CreateJob($job_id: uuid!, $task_name: String!, $status: String!, $start_time: timestamptz!) {
   insert_jobs_espn_one(object: {
     job_id: $job_id,
