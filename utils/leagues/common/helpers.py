@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Dict
-from utils.auth_service import auth_service
+
 
 
 def format_date(date: datetime) -> str:
@@ -14,17 +14,11 @@ def find_next_game_date(current_date: datetime, max_days: int = 14) -> datetime:
         # Logic to check if date has games
         yield next_date
 
-def get_headers() -> Dict[str, str]:
-    return {
-        "Authorization": f"Bearer {auth_service.get_token()}",
-        "Content-Type": "application/json"
-    }
 
 
 def get_hasura_headers():
     # Replace this with however you generate or fetch your headers
     return {
-        "Authorization": f"Bearer {auth_service.get_token()}",
         "Content-Type": "application/json",
         "x-hasura-admin-secret": "DHieJhzOpml0wBIbEZC5mvsDdSKMnyMC4b8Kx04p0adKUO0zd2e2LSganKK6CRAb"
     }

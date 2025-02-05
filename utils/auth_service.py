@@ -63,4 +63,3 @@ class AuthService:
             raise Exception(f"Registration failed: {str(e)}")
 
 # Create a singleton instance
-auth_service = AuthService() 
