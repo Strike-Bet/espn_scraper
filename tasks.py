@@ -65,6 +65,7 @@ def _scrape_all_games():
             }
 
         # Process NFL games
+        """
         try:
             logger.info("Starting NFL games scraping...")
             nfl_game_ids = nfl_scraper.scrape_games(current_date)
@@ -84,6 +85,8 @@ def _scrape_all_games():
                 'status': 'error',
                 'error': str(e)
             }
+
+            """
 
         job_end_time = datetime.now(pytz.timezone('US/Pacific'))
         duration = (job_end_time - job_start_time).total_seconds()
