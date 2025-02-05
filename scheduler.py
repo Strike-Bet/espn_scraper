@@ -12,7 +12,6 @@ ssl_context.verify_mode = ssl.CERT_NONE
 redis_conn = Redis.from_url(
     redis_url,
     ssl_cert_reqs=None,  # Disables certificate verification
-    ssl=True
 )
 
 scheduler = Scheduler(connection=redis_conn)
