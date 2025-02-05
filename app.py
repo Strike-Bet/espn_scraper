@@ -45,24 +45,31 @@ redis_conn = Redis.from_url(
 def start_scraper_job():
     """Start a new scraper job and schedule recurring execution"""
     try:
-        # Schedule immediate job
-        job = default_queue.enqueue(scrape_all_games)
-
+        # Check for existing scheduled jobs
+        existing_jobs = scheduler.get_jobs()
+        job_exists = any(job.func_name == 'scrape_all_games' for job in existing_jobs)
         
-        
-        # Schedule recurring job (every 3 minutes)
-        scheduler.schedule(
-            scheduled_time=datetime.now(pytz.timezone('US/Pacific')) + timedelta(minutes=3),
-            func=scrape_all_games,
-            interval=180  # 3 minutes in seconds
-        )
-
-        print("Job scheduled")
-        
-        return jsonify({
-            'message': 'Scraper job started and scheduled',
-            'job_id': job.id
-        })
+        if not job_exists:
+            # Schedule immediate job
+            job = default_queue.enqueue(scrape_all_games)
+            
+            # Schedule recurring job (every 3 minutes)
+            scheduler.schedule(
+                scheduled_time=datetime.now(pytz.timezone('US/Pacific')) + timedelta(minutes=3),
+                func=scrape_all_games,
+                interval=180  # 3 minutes in seconds
+            )
+            
+            return jsonify({
+                'message': 'Scraper job started and scheduled',
+                'job_id': job.id
+            })
+        else:
+            return jsonify({
+                'message': 'Scraper job already scheduled',
+                'status': 'existing'
+            })
+            
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

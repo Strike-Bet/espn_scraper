@@ -19,12 +19,7 @@ redis_conn = Redis.from_url(
 
 scheduler = Scheduler(connection=redis_conn)
 
-# Schedule jobs
-scheduler.schedule(
-    scheduled_time=datetime.now(pytz.timezone('US/Pacific')) + timedelta(minutes=3),
-    func=scrape_all_games,
-    interval=180  # 3 minutes in seconds
-)
+
 
 # Start the scheduler
 scheduler.run() 
