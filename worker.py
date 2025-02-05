@@ -2,10 +2,19 @@ from redis import Redis
 from rq import Queue, Worker
 from rq.job import Job
 import os
+import ssl
 
 # Configure Redis connection
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
-redis_conn = Redis.from_url(redis_url)
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
+redis_conn = Redis.from_url(
+    redis_url,
+    ssl_cert_reqs=None,  # Disables certificate verification
+    ssl=True
+)
 
 # Create queue
 default_queue = Queue('default', connection=redis_conn)
