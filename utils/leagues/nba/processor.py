@@ -88,7 +88,7 @@ def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, t
             print("Event completed successfully")
             return None
         elif (player_stats["game_status"] == STATUS_IN_PROGRESS) or (testing_mode and testing == "in_progress"):
-            return {**event, "result": str(updated_stat), "status": "IN_PROGRESS"}
+            return {**event, "result_numeric": str(updated_stat), "status": "IN_PROGRESS"}
         return None
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to update betting event {event['event_id']}: {str(e)}")
@@ -148,10 +148,10 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
         if event["status"] != "IN_PROGRESS" and event["status"] != "NOT_STARTED":
             print("Event is already complete, skipping")
             continue
+
+        utc_time = current_date.astimezone(utc)
         
-        utc_time = datetime.fromisoformat(event["start_time"].replace('Z', '+00:00'))
-        pacific_start_time = utc_time.astimezone(pacific)
-        if event["player_name"] not in players and pacific_start_time < current_date:
+        if event["player_name"] not in players and datetime.fromisoformat(event["start_time"]) < utc_time:
             print("Player not found in game data, categorizing them as DNP")
             response = requests.post(
                 f"{os.getenv('BACKEND_URL')}/actions/set-dnp",
@@ -160,7 +160,8 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
             )
             response.raise_for_status()
             continue
-        elif event["player_name"] not in players and pacific_start_time > current_date:
+        
+        if event["player_name"] not in players:
             print("Player not found in game data, skipping")
             continue
    
@@ -185,17 +186,47 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
     
     if new_betting_events:
         try:
-            print("Sending bulk update request...")
-            print(new_betting_events)
-            response = requests.post(
-                f"{os.getenv('BACKEND_URL')}/api/rest/updatebettingeventsmany",
-                headers=get_hasura_headers(),
-                json={"updates": new_betting_events}
-            )
+            updates = []
+            for event in new_betting_events:
+                update_obj = {
+                    "where": { "event_id": { "_eq": event["event_id"] } },
+                    "_set": {
+                        "result_numeric": event["result_numeric"],
+                        "status": event["status"]
+                    }
+                }
+                updates.append(update_obj)
 
+            # Prepare the GraphQL payload
+            payload = {
+                "query": """
+                    mutation updateBettingEventsMany($updates: [betting_events_updates!]!) {
+                    update_betting_events_many(updates: $updates) {
+                        affected_rows
+                        returning {
+                        event_id
+                        result_numeric
+                        status
+                        }
+                    }
+                    }
+                """,
+                "variables": {
+                    "updates": updates
+                }
+            }
+
+            # Define headers and URL (make sure environment variables are set accordingly)
+            url = f"https://lasting-scorpion-21.hasura.app/v1/graphql"
+            headers = {
+                "Content-Type": "application/json",
+                "x-hasura-admin-secret": "DHieJhzOpml0wBIbEZC5mvsDdSKMnyMC4b8Kx04p0adKUO0zd2e2LSganKK6CRAb"
+            }
+
+            # Send the POST request
+            response = requests.post(url, headers=headers, json=payload)
+            
             print(response.json())
-            response.raise_for_status()
-            print("Bulk update successful")
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to bulk update betting events: {str(e)}")
             print(f"Bulk update failed: {str(e)}")

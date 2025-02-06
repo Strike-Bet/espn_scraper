@@ -5,7 +5,8 @@ from datetime import datetime, timedelta
 from typing import Set, Dict, List
 from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULED
 
-BOXSCORE_URL = os.getenv('NBA_BOXSCORE_URL')
+BOXSCORE_URL = "https://cdn.espn.com/core/nba/"
+print(BOXSCORE_URL)
 
 def extract_players(input_data: Dict) -> List:
     """Extracts the 'players' section from the input JSON."""

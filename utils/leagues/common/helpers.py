@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Dict
-
-
+import os
+from utils.auth_service import AuthService
 
 def format_date(date: datetime) -> str:
     """Format date to YYYYMMDD for ESPN API."""
@@ -19,6 +19,7 @@ def find_next_game_date(current_date: datetime, max_days: int = 14) -> datetime:
 def get_hasura_headers():
     # Replace this with however you generate or fetch your headers
     return {
+        "Authorization": f"Bearer {AuthService().get_token()}",
         "Content-Type": "application/json",
         "x-hasura-admin-secret": "DHieJhzOpml0wBIbEZC5mvsDdSKMnyMC4b8Kx04p0adKUO0zd2e2LSganKK6CRAb"
     }

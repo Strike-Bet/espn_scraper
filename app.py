@@ -16,10 +16,9 @@ from rq.worker import Worker
 from redis import Redis
 import ssl
 from utils.job_service import JobService
-import psutil
 import platform
 import requests
-
+import psutil
 
 load_dotenv()
 app = Flask(__name__)
