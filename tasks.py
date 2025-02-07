@@ -50,13 +50,19 @@ def _scrape_all_games():
             logger.info(f"Found {len(nba_game_ids)} NBA games: {nba_game_ids}")
             
             logger.info("Processing NBA boxscores...")
-            nba_processor.process_boxscores(nba_game_ids, current_date, testing_mode=False, testing="")
-            results['nba'] = {
-                'status': 'success',
-                'game_count': len(nba_game_ids),
-                'game_ids': nba_game_ids
-            }
-            logger.info("NBA processing completed successfully")
+            completed = nba_processor.process_boxscores(nba_game_ids, current_date, testing_mode=False, testing="")
+            if completed:
+                results['nba'] = {
+                    'status': 'success',
+                    'game_count': len(nba_game_ids),
+                    'game_ids': nba_game_ids
+                }
+            else:
+                logger.info("NBA processing failed")
+                results['nba'] = {
+                    'status': 'error',
+                    'error': 'NBA processing failed'
+                }
         except Exception as e:
             logger.error(f"Error processing NBA games: {str(e)}", exc_info=True)
             results['nba'] = {

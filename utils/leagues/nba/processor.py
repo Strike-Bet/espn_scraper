@@ -23,7 +23,6 @@ def process_player_stats(player_stats: list) -> dict:
     Each stat in player_stats is a list of [stat_name, abbreviation, value]
     """
     stats_dict = {}
-    
     for stat in player_stats:
         stat_name = stat[1]  # Use abbreviation as key
         stat_value = stat[2]  # Raw value
@@ -113,6 +112,8 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
     print(f"\nProcessing NBA boxscores for {len(game_ids)} games...")
     print(f"Testing mode: {testing}")
 
+    scraper_complete = False
+
     players = {}
     for game_id in game_ids:
         print(f"\nProcessing game {game_id}...")
@@ -180,6 +181,7 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
         if updated_event:
             new_betting_events.append(updated_event)
         else:
+            scraper_complete = True
             print("No update needed")
 
     print(f"\nProcessed all events. {len(new_betting_events)} events to update")
@@ -227,11 +229,15 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
             response = requests.post(url, headers=headers, json=payload)
             
             print(response.json())
+            if response.status_code != [200, 201]:
+                logger.error(f"Failed to bulk update betting events: {response.json()}")
+                print(f"Bulk update failed: {response.json()}")
+            else: 
+                scraper_complete = True
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to bulk update betting events: {str(e)}")
             print(f"Bulk update failed: {str(e)}")
-
-    return players
-
+            scraper_complete = False
+    return scraper_complete 
 
 

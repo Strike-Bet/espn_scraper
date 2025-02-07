@@ -8,8 +8,8 @@ load_dotenv()
 class AuthService:
     def __init__(self):
         self.server_url = os.getenv("BACKEND_URL")
-        self.email = "ronitrjain@gmail.com"
-        self.password = "Akshayisafag"
+        self.email = "espn@strikebet.app"
+        self.password = "espn"
         self._access_token = None
 
         print(self.server_url, self.email, self.password)
