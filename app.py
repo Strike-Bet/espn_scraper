@@ -19,7 +19,6 @@ from utils.job_service import JobService
 import platform
 import requests
 import psutil
-
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
@@ -37,7 +36,7 @@ ssl_context.verify_mode = ssl.CERT_NONE
 
 redis_conn = Redis.from_url(
     redis_url, 
-    ssl_cert_reqs=None,  # Disables certificate verification
+    ssl_cert_reqs=None  # Disables certificate verification
 )
 
 @app.route("/espn-scraper/start", methods=['POST'])

@@ -2,7 +2,7 @@ from utils.leagues.nba import scraper as nba_scraper
 from utils.leagues.nfl import scraper as nfl_scraper
 from utils.leagues.nba import processor as nba_processor
 from utils.leagues.nfl import processor as nfl_processor
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import logging
 from utils.job_service import JobService

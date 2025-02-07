@@ -151,15 +151,27 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
             continue
 
         utc_time = current_date.astimezone(utc)
-        
-        if event["player_name"] not in players and datetime.fromisoformat(event["start_time"]) < utc_time:
-            print("Player not found in game data, categorizing them as DNP")
-            response = requests.post(
-                f"{os.getenv('BACKEND_URL')}/actions/set-dnp",
-                headers=get_hasura_headers(),
-                json={"betting_event_id": event["event_id"]}
-            )
-            response.raise_for_status()
+
+        if event["player_name"] not in players:
+            try:
+                event_time = datetime.fromisoformat(event["start_time"].replace('Z', '+00:00'))
+                if event_time < utc_time:
+                    print("Player not found in game data, categorizing them as DNP")
+                    print("Event", event)
+                    try:
+                        response = requests.post(
+                            f"{os.getenv('BACKEND_URL')}/actions/set-dnp",
+                            headers=get_hasura_headers(),
+                            json={"betting_event_id": event["event_id"]}
+                        )
+                        response.raise_for_status()
+                    except requests.exceptions.RequestException as e:
+                        logger.error(f"Failed to set DNP for event {event['event_id']}: {str(e)}")
+                else:
+                    print("Player not found in game data but game hasn't started, skipping")
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error parsing event time for event {event['event_id']}: {str(e)}")
+                print(f"Error parsing event time: {str(e)}")
             continue
         
         if event["player_name"] not in players:

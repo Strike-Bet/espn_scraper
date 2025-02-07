@@ -7,9 +7,9 @@ load_dotenv()
 
 class AuthService:
     def __init__(self):
-        self.server_url = os.getenv("BACKEND_URL")
+        self.server_url = "https://graphql-middleware-0017fe3a94ee.herokuapp.com"
         self.email = "espn@strikebet.app"
-        self.password = "espn"
+        self.password = "espn_scraper"
         self._access_token = None
 
         print(self.server_url, self.email, self.password)
@@ -48,7 +48,7 @@ class AuthService:
         """Register a new user with the backend server"""
         try:
             response = requests.post(
-                f"{self.server_url}/register",
+                f"{self.server_url}/auth/register",
                 json={
                     "username": "espn_scraper",
                     "email": "espn_scraper@strikebet.app",

@@ -18,6 +18,7 @@ def find_next_game_date(current_date: datetime, max_days: int = 14) -> datetime:
 
 def get_hasura_headers():
     # Replace this with however you generate or fetch your headers
+    print("Auth service token", AuthService().get_token())
     return {
         "Authorization": f"Bearer {AuthService().get_token()}",
         "Content-Type": "application/json",
