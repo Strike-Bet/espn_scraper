@@ -64,7 +64,7 @@ def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, t
             response.raise_for_status()
             return None
         elif (player_stats["game_status"] == STATUS_IN_PROGRESS) or (testing_mode and testing == "in_progress"):
-            return {**event, "result": str(updated_stat), "status": "IN_PROGRESS"}
+            return {**event, "result_numeric": str(updated_stat), "status": "IN_PROGRESS"}
         return None
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to update betting event {event['event_id']}: {str(e)}")
@@ -98,7 +98,7 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str, 
         )
         response.raise_for_status()
 
-        betting_events = response.json()
+        betting_events = response.json()["betting_events"]
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to fetch active betting events: {str(e)}")
         return players
@@ -107,8 +107,9 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str, 
 
 
     new_betting_events = []
+    print("betting_events", betting_events)
     for event in betting_events:
-        if event["league"] != NFL_LEAGUE_ID:
+        if int(event["league"]) != NFL_LEAGUE_ID:
             continue
 
         utc = pytz.UTC

@@ -70,25 +70,25 @@ def _scrape_all_games():
                 'error': str(e)
             }
 
-        # try:
-        #     logger.info("Starting NFL games scraping...")
-        #     nfl_game_ids = nfl_scraper.scrape_games(current_date)
-        #     logger.info(f"Found {len(nfl_game_ids)} NFL games: {nfl_game_ids}")
+        try:
+            logger.info("Starting NFL games scraping...")
+            nfl_game_ids = nfl_scraper.scrape_games(current_date)
+            logger.info(f"Found {len(nfl_game_ids)} NFL games: {nfl_game_ids}")
             
-        #     logger.info("Processing NFL boxscores...")
-        #     nfl_processor.process_boxscores(nfl_game_ids, current_date, testing_mode=False, testing="")
-        #     results['nfl'] = {
-        #         'status': 'success',
-        #         'game_count': len(nfl_game_ids),
-        #         'game_ids': nfl_game_ids
-        #     }
-        #     logger.info("NFL processing completed successfully")
-        # except Exception as e:
-        #     logger.error(f"Error processing NFL games: {str(e)}", exc_info=True)
-        #     results['nfl'] = {
-        #         'status': 'error',
-        #         'error': str(e)
-        #     }
+            logger.info("Processing NFL boxscores...")
+            nfl_processor.process_boxscores(nfl_game_ids, current_date, testing_mode=False, testing="")
+            results['nfl'] = {
+                'status': 'success',
+                'game_count': len(nfl_game_ids),
+                'game_ids': nfl_game_ids
+            }
+            logger.info("NFL processing completed successfully")
+        except Exception as e:
+            logger.error(f"Error processing NFL games: {str(e)}", exc_info=True)
+            results['nfl'] = {
+                'status': 'error',
+                'error': str(e)
+            }
 
         job_end_time = datetime.now(pytz.timezone('US/Pacific'))
         duration = (job_end_time - job_start_time).total_seconds()
