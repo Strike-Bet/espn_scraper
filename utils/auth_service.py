@@ -51,8 +51,8 @@ class AuthService:
                 f"{self.server_url}/auth/register",
                 json={
                     "username": "espn_scraper",
-                    "email": "espn_scraper@strikebet.app",
-                    "password": "espnScraper1!"
+                    "email": "espn@strikebet.app",
+                    "password": "espn_scraper"
                 }
             )
             if response.status_code != 200:

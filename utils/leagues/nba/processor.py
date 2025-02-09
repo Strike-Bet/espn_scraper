@@ -10,6 +10,7 @@ from utils.s3_service import upload_to_s3
 from ..common.helpers import parse_shot_stats, NBA_STAT_MAP, get_hasura_headers
 import json
 import pytz
+from datetime import timedelta
 
 # Create timezone objects
 utc = pytz.UTC
@@ -155,7 +156,8 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
         if event["player_name"] not in players:
             try:
                 event_time = datetime.fromisoformat(event["start_time"].replace('Z', '+00:00'))
-                if event_time < utc_time:
+                print(f"Event time: {event_time}, utc time: {utc_time}")
+                if event_time + timedelta(hours=3) < utc_time:
                     print("Player not found in game data, categorizing them as DNP")
                     print("Event", event)
                     try:
@@ -239,8 +241,6 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
 
             # Send the POST request
             response = requests.post(url, headers=headers, json=payload)
-            
-            print(response.json())
             if response.status_code != [200, 201]:
                 logger.error(f"Failed to bulk update betting events: {response.json()}")
                 print(f"Bulk update failed: {response.json()}")
