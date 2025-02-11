@@ -6,6 +6,8 @@ from datetime import datetime
 
 def scrape_games(current_date: datetime) -> set:
     """Scrape NFL games starting from current_date."""
+
+    current_date = datetime(2025, 2, 9)
     game_ids = set()
     
     for check_date in find_next_game_date(current_date):

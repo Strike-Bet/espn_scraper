@@ -55,7 +55,9 @@ def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
 def update_betting_event(event: Dict, player_stats: Dict, updated_stat: float, testing: str, testing_mode: bool) -> Optional[Dict]:
     """Update or complete a betting event based on game status."""
     try:
-        if (player_stats["game_status"] == STATUS_FINAL and event["in_progress"]) or testing == "complete":
+        print("player_stats", player_stats)
+        if (player_stats["game_status"] == STATUS_FINAL and event["in_progress"]) or (player_stats["game_status"] == STATUS_SCHEDULED) or testing == "complete":
+            print("completed betting event")
             response = requests.post(
                 f"{os.getenv('BACKEND_URL')}/actions/complete-betting-event",
                 headers=get_hasura_headers(),
@@ -107,8 +109,10 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str, 
 
 
     new_betting_events = []
-    print("betting_events", betting_events)
+
     for event in betting_events:
+        with open("events.json", "w") as f:
+            json.dump(event, f)
         if int(event["league"]) != NFL_LEAGUE_ID:
             continue
 
@@ -145,22 +149,62 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str, 
             continue
 
         updated_stat = calculate_stat_value(stat_type, players[event["player_name"]])
-        updated_event = update_betting_event(event, players[event["player_name"]], updated_stat, testing)
+        updated_event = update_betting_event(event, players[event["player_name"]], updated_stat, testing, testing_mode)
+        print("updated_event", updated_event)
 
         if updated_event:
             new_betting_events.append(updated_event)
 
+        print("new_betting_events", new_betting_events)
+        if new_betting_events:
+            try:
+                updates = []
+                for event in new_betting_events:
+                    update_obj = {
+                        "where": { "event_id": { "_eq": event["event_id"] } },
+                        "_set": {
+                            "result_numeric": event["result_numeric"],
+                            "status": event["status"]
+                        }
+                    }
+                    updates.append(update_obj)
 
-    if new_betting_events:
-        try:
-            response = requests.post(
-                f"{os.getenv('BACKEND_URL')}/api/rest/updatebettingeventsmany",
-                headers=get_hasura_headers(),
-                json={"updates": new_betting_events}
-            )
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to bulk update betting events: {str(e)}")
+                # Prepare the GraphQL payload
+                payload = {
+                    "query": """
+                        mutation updateBettingEventsMany($updates: [betting_events_updates!]!) {
+                        update_betting_events_many(updates: $updates) {
+                            affected_rows
+                            returning {
+                            event_id
+                            result_numeric
+                            status
+                            }
+                        }
+                        }
+                    """,
+                    "variables": {
+                        "updates": updates
+                    }
+                }
+
+                # Define headers and URL (make sure environment variables are set accordingly)
+                url = f"https://lasting-scorpion-21.hasura.app/v1/graphql"
+                headers = {
+                    "Content-Type": "application/json",
+                    "x-hasura-admin-secret": "DHieJhzOpml0wBIbEZC5mvsDdSKMnyMC4b8Kx04p0adKUO0zd2e2LSganKK6CRAb"
+                }
+
+                # Send the POST request
+                response = requests.post(url, headers=headers, json=payload)
+                print("response", response.json())
+                if response.status_code != [200, 201]:
+                    logger.error(f"Failed to bulk update betting events: {response.json()}")
+                    print(f"Bulk update failed: {response.json()}")
+
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Failed to bulk update betting events: {str(e)}")
+                print(f"Bulk update failed: {str(e)}")
 
     return players
     
