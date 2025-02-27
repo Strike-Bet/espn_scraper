@@ -88,7 +88,7 @@ def calculate_fantasy_score(player_stats: dict) -> int:
     return score
 
 # Updated STAT_MAP
-NBA_STAT_MAP = {
+BASKETBALL_STAT_MAP = {
     "Minutes": "MIN",
     "Field Goals Made": {"key": "FG", "made": True},
     "FG Made": {"key": "FG", "made": True},

@@ -12,8 +12,6 @@ class AuthService:
         self.password = "espn_scraper"
         self._access_token = None
 
-        print(self.server_url, self.email, self.password)
-
     def get_token(self) -> Optional[str]:
         """Get authentication token, login if necessary"""
         if not self._access_token:
@@ -38,7 +36,6 @@ class AuthService:
             if response.status_code != 200:
                 raise Exception(f"Login failed: {response.status_code} {response.text}")
             
-            print(response.json())  
             return response.json()["access_token"]
             
         except Exception as e:

@@ -5,7 +5,7 @@ import os
 import requests
 import logging
 from .extractor import extract_game_data, extract_players, parse_players, extract_game_status
-from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULED, NBA_LEAGUE_ID
+from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, CBB_LEAGUE_ID
 from utils.s3_service import upload_to_s3
 from ..common.helpers import parse_shot_stats, BASKETBALL_STAT_MAP, get_hasura_headers
 import json
@@ -61,8 +61,7 @@ def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
 
         players_data = extract_players(data)
         parsed_players = parse_players(players_data)
-        upload_to_s3(parsed_players, f"NBA/PLAYERDATA/players_{game_id}.json")
-
+        # upload_to_s3(parsed_players, f"CBB/PLAYERDATA/players_{game_id}.json")
 
         return {
             player["player_name"]: {**process_player_stats(player["player_statistics"]), 
@@ -110,7 +109,7 @@ def calculate_stat_value(stat_type: Union[str, dict, list], player_stats: Dict) 
 
 def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: bool, testing: str) -> Dict:
     """Process all game boxscores and update betting events."""
-    print(f"\nProcessing NBA boxscores for {len(game_ids)} games...")
+    print(f"\nProcessing CBB boxscores for {len(game_ids)} games...")
     print(f"Testing mode: {testing}")
 
     scraper_complete = False
@@ -142,7 +141,7 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
     new_betting_events = []
     print("\nProcessing betting events...")
     for event in betting_events:
-        if int(event["league"]) != NBA_LEAGUE_ID:
+        if int(event["league"]) != CBB_LEAGUE_ID:
             continue
 
         print(f"\nChecking event for {event['player_name']} - {event['stat_type']}")
@@ -152,6 +151,9 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
             continue
 
         utc_time = current_date.astimezone(utc)
+
+        with open(f"players_{game_id}.json", "w") as file:
+            json.dump(players, file)
 
         if event["player_name"] not in players:
             try:

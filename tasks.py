@@ -1,7 +1,9 @@
 from utils.leagues.nba import scraper as nba_scraper
 from utils.leagues.nfl import scraper as nfl_scraper
+from utils.leagues.cbb import scraper as cbb_scraper
 from utils.leagues.nba import processor as nba_processor
 from utils.leagues.nfl import processor as nfl_processor
+from utils.leagues.cbb import processor as cbb_processor
 from datetime import datetime, timedelta
 import pytz
 import logging
@@ -40,7 +42,8 @@ def _scrape_all_games():
         current_date = datetime.now()
         results = {
             'nba': {'status': 'pending'},
-            'nfl': {'status': 'pending'}
+            'nfl': {'status': 'pending'}, 
+            'cbb': {'status': 'pending'}
         }
 
         # Process NBA games
@@ -57,6 +60,7 @@ def _scrape_all_games():
                     'game_count': len(nba_game_ids),
                     'game_ids': nba_game_ids
                 }
+
             else:
                 logger.info("NBA processing failed")
                 results['nba'] = {
@@ -86,6 +90,24 @@ def _scrape_all_games():
         except Exception as e:
             logger.error(f"Error processing NFL games: {str(e)}", exc_info=True)
             results['nfl'] = {
+                'status': 'error',
+                'error': str(e)
+            }
+        
+        try:
+            logger.info("Starting CBB games scraping...")
+            cbb_game_ids = cbb_scraper.scrape_games(current_date)
+            logger.info(f"Found {len(cbb_game_ids)} CBB games: {cbb_game_ids}")
+            completed = cbb_processor.process_boxscores(cbb_game_ids, current_date, testing_mode=False, testing="")
+            if completed:
+                results['cbb'] = {
+                    'status': 'success',
+                    'game_count': len(cbb_game_ids),
+                    'game_ids': cbb_game_ids
+                }
+        except Exception as e:
+            logger.error(f"Error processing CBB games: {str(e)}", exc_info=True)
+            results['cbb'] = {
                 'status': 'error',
                 'error': str(e)
             }
