@@ -27,3 +27,15 @@ jobs:
                 PORTER_REPO_NAME: ${{ github.event.repository.name }}
                 PORTER_TAG: ${{ steps.vars.outputs.sha_short }}
                 PORTER_TOKEN: ${{ secrets.PORTER_APP_14935_4660 }}
+
+apps:
+  - name: espn-scraper
+    image: your-docker-image
+    env:
+      - name: REDIS_URL
+        value: redis://your-redis-host:6379
+      - name: BACKEND_URL
+        value: https://your-backend-url
+    cron:
+      - schedule: "*/2 * * * *"
+        command: python -u run_scraper.py
