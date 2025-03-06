@@ -152,8 +152,8 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
 
         utc_time = current_date.astimezone(utc)
 
-        with open(f"players_{game_id}.json", "w") as file:
-            json.dump(players, file)
+        # with open(f"players_{game_id}.json", "w") as file:
+        #     json.dump(players, file)
 
         if event["player_name"] not in players:
             try:

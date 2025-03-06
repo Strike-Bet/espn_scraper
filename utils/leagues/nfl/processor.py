@@ -111,8 +111,8 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing: str, 
     new_betting_events = []
 
     for event in betting_events:
-        with open("events.json", "w") as f:
-            json.dump(event, f)
+        # with open("events.json", "w") as f:
+        #     json.dump(event, f)
         if int(event["league"]) != NFL_LEAGUE_ID:
             continue
 
