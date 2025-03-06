@@ -18,7 +18,6 @@ import ssl
 from utils.job_service import JobService
 import platform
 import requests
-import psutil
 
 load_dotenv()
 app = Flask(__name__)
@@ -36,8 +35,7 @@ ssl_context.check_hostname = False
 ssl_context.verify_mode = ssl.CERT_NONE
 
 redis_conn = Redis.from_url(
-    redis_url,
-    ssl_cert_reqs=ssl.CERT_NONE
+    redis_url
 )
 
 @app.route("/espn-scraper/start", methods=['POST'])

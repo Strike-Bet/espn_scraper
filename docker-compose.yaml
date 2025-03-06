@@ -17,6 +17,23 @@ services:
       - app-network
     command: python app.py
 
+  scraper_runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: python_scraper_runner
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - app-network
+    command: python run_scraper.py
+    restart: always
+
   worker:
     build:
       context: .
