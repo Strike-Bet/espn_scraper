@@ -10,7 +10,7 @@ def scrape_games(current_date: datetime) -> set:
 
     pst_date = current_date.astimezone(pytz.timezone('US/Pacific')) - timedelta(days=1) 
     formatted_date = format_date(pst_date)
-    url = f"{LEAGUE_ENDPOINTS['cbb']}?dates={formatted_date}"
+    url = f"{LEAGUE_ENDPOINTS['cbb']}?dates={formatted_date}/group/50"
     
     response = requests.get(url)
     game_ids = set()
