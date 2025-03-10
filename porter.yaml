@@ -1,0 +1,63 @@
+version: v2
+name: espn-scraper
+
+services:
+  - name: web
+    type: web
+    dockerfile: Dockerfile
+    port: 8000
+    env:
+      - name: REDIS_URL
+        value: redis://redis:6379
+      - name: PYTHONUNBUFFERED
+        value: "1"
+      - name: PORT
+        value: "8000"
+    resources:
+      cpu: 100m
+      memory: 256Mi
+    command: python app.py
+
+  - name: worker
+    type: worker
+    dockerfile: Dockerfile
+    env:
+      - name: REDIS_URL
+        value: redis://redis:6379
+      - name: PYTHONUNBUFFERED
+        value: "1"
+    resources:
+      cpu: 100m
+      memory: 256Mi
+    command: python worker.py
+
+  - name: scheduler
+    type: worker
+    dockerfile: Dockerfile
+    env:
+      - name: REDIS_URL
+        value: redis://redis:6379
+      - name: PYTHONUNBUFFERED
+        value: "1"
+    resources:
+      cpu: 100m
+      memory: 256Mi
+    command: python -m rq_scheduler
+
+  - name: scraper_runner
+    type: worker
+    dockerfile: Dockerfile
+    env:
+      - name: REDIS_URL
+        value: redis://redis:6379
+      - name: PYTHONUNBUFFERED
+        value: "1"
+    resources:
+      cpu: 100m
+      memory: 256Mi
+    command: python run_scraper.py
+    restart: always
+
+addons:
+  - name: redis
+    type: redis 

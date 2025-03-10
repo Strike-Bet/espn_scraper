@@ -11,7 +11,7 @@ from ..common.helpers import parse_shot_stats, BASKETBALL_STAT_MAP, get_hasura_h
 import json
 import pytz
 from datetime import timedelta
-
+from unidecode import unidecode
 # Create timezone objects
 utc = pytz.UTC
 pacific = pytz.timezone('US/Pacific')
@@ -152,8 +152,9 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
             continue
 
         utc_time = current_date.astimezone(utc)
-
-        if event["player_name"] not in players:
+        normalized_name = unidecode(event["player_name"])
+        print(f"Normalized name: {normalized_name}")
+        if normalized_name not in players:
             try:
                 event_time = datetime.fromisoformat(event["start_time"].replace('Z', '+00:00'))
                 print(f"Event time: {event_time}, utc time: {utc_time}")
@@ -176,7 +177,7 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
                 print(f"Error parsing event time: {str(e)}")
             continue
         
-        if event["player_name"] not in players:
+        if normalized_name not in players:
             print("Player not found in game data, skipping")
             continue
    
@@ -186,11 +187,11 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
             continue
 
         print("Calculating updated stat value...")
-        updated_stat = calculate_stat_value(stat_type, players[event["player_name"]])
+        updated_stat = calculate_stat_value(stat_type, players[normalized_name])
         print(f"New stat value: {updated_stat}")
         
         print("Updating betting event...")
-        updated_event = update_betting_event(event, players[event["player_name"]], updated_stat, testing_mode, testing)
+        updated_event = update_betting_event(event, players[normalized_name], updated_stat, testing_mode, testing)
         
         if updated_event:
             new_betting_events.append(updated_event)
