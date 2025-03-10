@@ -44,7 +44,7 @@ services:
       memory: 256Mi
     command: python -m rq_scheduler
 
-  - name: scraper_runner
+  - name: scraper-runner
     type: worker
     dockerfile: Dockerfile
     env:
@@ -60,4 +60,4 @@ services:
 
 addons:
   - name: redis
-    type: redis 
+    type: redis
