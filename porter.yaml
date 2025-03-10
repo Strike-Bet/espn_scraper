@@ -42,7 +42,7 @@ services:
     resources:
       cpu: 100m
       memory: 256Mi
-    command: python -m rq_scheduler
+    command: python scheduler.py
 
   - name: scraper-runner
     type: worker
