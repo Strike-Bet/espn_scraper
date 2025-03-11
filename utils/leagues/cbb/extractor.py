@@ -65,8 +65,8 @@ def extract_game_data(game_id: str) -> Dict:
     url = f"{BOXSCORE_URL}/boxscore?xhr=1&gameId={game_id}"
     response = requests.get(url)
 
-    # with open(f"boxscore_{game_id}.json", "w") as file:
-    #     json.dump(response.json(), file)
+    with open(f"boxscore_{game_id}.json", "w") as file:
+        json.dump(response.json(), file)
     
     if response.status_code != 200:
         raise Exception(f"Failed to fetch data for gameId {game_id}: {response.status_code}")

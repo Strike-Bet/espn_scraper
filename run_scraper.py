@@ -15,4 +15,4 @@ if __name__ == "__main__":
         results = scrape_all_games()
         logger.info(f"Scheduled scraper job completed with results: {results}")
     except Exception as e:
-        logger.error(f"Scheduled scraper job failed with error: {str(e)}")
+        logger.error(f"Scheduled scraper job failed with error: {str(e)}") 
