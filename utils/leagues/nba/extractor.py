@@ -65,8 +65,8 @@ def extract_game_data(game_id: str) -> Dict:
     url = f"{BOXSCORE_URL}/boxscore?xhr=1&gameId={game_id}"
     response = requests.get(url)
 
-    with open(f"game_data_nba_{game_id}.json", "w") as f:
-        json.dump(response.json(), f)
+    # with open(f"game_data_nba_{game_id}.json", "w") as f:
+    #     json.dump(response.json(), f)
     
     if response.status_code != 200:
         raise Exception(f"Failed to fetch data for gameId {game_id}: {response.status_code}")
@@ -86,9 +86,5 @@ def extract_game_status(events: Dict, current_date: datetime) -> str:
             with open(f"game_status_nba_{event.get('id')}.json", "w") as f:
                 json.dump(event, f)
             return event.get("statusType", {}).get("name", "")
-        
-        elif event_datetime.date() < current_date.date():
-            print(f"Game {event.get('id')} is in the past")
-            return STATUS_FINAL
         
     return None

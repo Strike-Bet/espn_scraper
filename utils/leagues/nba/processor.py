@@ -122,8 +122,8 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
         print(f"\nProcessing game {game_id}...")
         game_data = process_game_data(game_id, current_date)
 
-        with open(f"players_nba_{game_id}.json", "w") as f:
-            json.dump(game_data, f)
+        # with open(f"players_nba_{game_id}.json", "w") as f:
+        #     json.dump(game_data, f)
        
         if game_data:
             print(f"Found {len(game_data)} players with stats")
