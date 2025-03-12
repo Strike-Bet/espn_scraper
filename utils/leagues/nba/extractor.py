@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Set, Dict, List
 from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULED
-
+import pytz
 BOXSCORE_URL = "https://cdn.espn.com/core/nba/"
 print(BOXSCORE_URL)
 
@@ -64,7 +64,8 @@ def extract_game_data(game_id: str) -> Dict:
     """Fetches and extracts game data for a specific game ID."""
     url = f"{BOXSCORE_URL}/boxscore?xhr=1&gameId={game_id}"
     response = requests.get(url)
-    
+    with open(f"game_data_nba_{game_id}.json", "w") as f:
+        json.dump(response.json(), f)
     if response.status_code != 200:
         raise Exception(f"Failed to fetch data for gameId {game_id}: {response.status_code}")
         
@@ -72,12 +73,15 @@ def extract_game_data(game_id: str) -> Dict:
 
 def extract_game_status(events: Dict, current_date: datetime) -> str:
     """Extract game status from event data."""
-
+    current_date = current_date.astimezone(pytz.timezone("US/Pacific"))
     for event in events:
         event_date = event.get("date", "")
         event_datetime = datetime.strptime(event_date, "%Y-%m-%dT%H:%M:%SZ")
+
+        print(f"Event date: {event_datetime.date()}, current date: {current_date.date()}")
         
         if current_date.date() <= event_datetime.date() <= (current_date + timedelta(days=1)).date():
+            print(f"Game status: {event.get('statusType', {}).get('name', '')}")
             return event.get("statusType", {}).get("name", "")
         
     return None
