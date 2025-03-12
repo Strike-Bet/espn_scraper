@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from app import scrape_cbb_games
+from app import scrape_all_games
 import logging
 
 # Configure logging
@@ -12,7 +12,7 @@ logger = logging.getLogger('espn_scraper_cron')
 if __name__ == "__main__":
     logger.info("Starting scheduled ESPN scraper job")
     try:
-        results = scrape_cbb_games()
+        results = scrape_all_games()
         logger.info(f"Scheduled scraper job completed with results: {results}")
     except Exception as e:
         logger.error(f"Scheduled scraper job failed with error: {str(e)}") 
