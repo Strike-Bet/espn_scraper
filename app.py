@@ -6,14 +6,11 @@ from utils.leagues.nba import processor as nba_processor
 from utils.leagues.nfl import processor as nfl_processor
 from utils.leagues.cbb import scraper as cbb_scraper
 from utils.leagues.cbb import processor as cbb_processor
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from dotenv import load_dotenv
 import pytz
 import os
-import threading
-import time
 import logging
-import platform
 
 # Configure logging
 logging.basicConfig(
@@ -114,6 +111,37 @@ def scrape_all_games():
     except Exception as e:
         logger.error(f"Fatal error in scraper job: {str(e)}", exc_info=True)
         return {'error': str(e)}
+
+
+def scrape_cbb_games():
+    job_start_time = datetime.now(pytz.timezone('US/Pacific'))
+    logger.info(f"Starting scraper job at {job_start_time}")
+    
+    try:
+        current_date = datetime.now()
+        results = {
+            'cbb': {'status': 'pending'}
+        }
+
+        logger.info("Starting CBB games scraping...")
+        cbb_game_ids = cbb_scraper.scrape_games(current_date)
+        logger.info(f"Found {len(cbb_game_ids)} CBB games: {cbb_game_ids}")
+        completed = cbb_processor.process_boxscores(cbb_game_ids, current_date, testing_mode=False, testing="")
+        if completed:
+            results['cbb'] = {
+                'status': 'success',
+                'game_count': len(cbb_game_ids),
+                'game_ids': cbb_game_ids
+            }
+    except Exception as e:
+            logger.error(f"Error processing CBB games: {str(e)}", exc_info=True)
+            results['cbb'] = {
+                'status': 'error',
+                'error': str(e)
+            }
+            
+            
+
 
 @app.route('/health', methods=['GET'])
 def health_check():

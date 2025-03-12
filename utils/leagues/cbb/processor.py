@@ -49,13 +49,13 @@ def process_game_data(game_id: str, current_date: datetime) -> Optional[Dict]:
     """Process individual game data and return player statistics."""
     try:
         data = extract_game_data(game_id)
-        events = data.get("gamepackageJSON", {}).get("seasonseries", [{}])[0].get("events", [])
+        comeptitions = data.get("gamepackageJSON", {}).get("header", {}).get("competitions", [])[0]
 
-        game_status = extract_game_status(events, current_date)
+        game_status = comeptitions.get("status", {}).get("type", {}).get("name", "")
         
         print(f"Game status: {game_status}, {game_id}")
 
-        if game_status is None:
+        if game_status is None or game_status == "":
             logger.warning(f"Did not find game status for game {game_id}")
             return None
 
