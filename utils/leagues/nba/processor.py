@@ -12,7 +12,7 @@ import json
 import pytz
 from datetime import timedelta
 from unidecode import unidecode
-from thefuzz import process
+from rapidfuzz import process, fuzz
 
 # Create timezone objects
 utc = pytz.UTC
@@ -166,12 +166,17 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
             print("Exact match not found, trying fuzzy matching...")
             player_names = list(players.keys())
             if player_names:
-                # Find the best match with a score
-                best_match, score = process.extractOne(normalized_name, player_names)
+                # Find the best match with a score using RapidFuzz
+                # Using token_sort_ratio to handle name order differences and punctuation
+                best_match, score = process.extractOne(
+                    normalized_name, 
+                    player_names,
+                    scorer=fuzz.token_set_ratio  # Better for names with different formats
+                )
                 print(f"Best match: {best_match} with score {score}")
                 
-                # Use the match if the score is high enough (adjust threshold as needed)
-                if score >= 85:  # 85% similarity threshold
+                # Use the match if the score is high enough
+                if score >= 80:  # 80% similarity threshold (can be adjusted)
                     player_match = best_match
                     print(f"Using fuzzy match: {player_match}")
         else:
@@ -196,9 +201,9 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
                 elif event_time > utc_time:
                     print("Player not found in game data but game hasn't started, skipping")
                 else: 
-                    print("Player match not found, skipping")
+                    print(f"Player name {player_match} not found in data, possibly DNP")
 
-                    
+
             except (ValueError, TypeError) as e:
                 logger.error(f"Error parsing event time for event {event['event_id']}: {str(e)}")
                 print(f"Error parsing event time: {str(e)}")
