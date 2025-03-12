@@ -210,7 +210,7 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
         print(f"New stat value: {updated_stat}")
         
         print("Updating betting event...")
-        updated_event = update_betting_event(event, players[event["player_name"]], updated_stat, testing_mode, testing)
+        updated_event = update_betting_event(event, players[player_match], updated_stat, testing_mode, testing)
         
         if updated_event:
             new_betting_events.append(updated_event)
