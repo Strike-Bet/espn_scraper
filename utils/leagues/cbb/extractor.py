@@ -71,3 +71,6 @@ def extract_game_data(game_id: str) -> Dict:
         raise Exception(f"Failed to fetch data for gameId {game_id}: {response.status_code}")
         
     return response.json()
+
+def extract_game_status(competitions: List, current_date: datetime) -> str:
+    pass
