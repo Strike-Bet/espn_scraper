@@ -193,8 +193,12 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
                         response.raise_for_status()
                     except requests.exceptions.RequestException as e:
                         logger.error(f"Failed to set DNP for event {event['event_id']}: {str(e)}")
-                else:
+                elif event_time > utc_time:
                     print("Player not found in game data but game hasn't started, skipping")
+                else: 
+                    print("Player match not found, skipping")
+
+                    
             except (ValueError, TypeError) as e:
                 logger.error(f"Error parsing event time for event {event['event_id']}: {str(e)}")
                 print(f"Error parsing event time: {str(e)}")
