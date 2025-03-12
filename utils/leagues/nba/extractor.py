@@ -79,12 +79,11 @@ def extract_game_status(events: Dict, current_date: datetime) -> str:
     for event in events:
         event_date = event.get("date", "")
         event_datetime = datetime.strptime(event_date, "%Y-%m-%dT%H:%M:%SZ")
+
+        print(f"Event date: {event_datetime.date()}, current date: {current_date.date()}")
         
         if current_date.date() <= event_datetime.date() <= (current_date + timedelta(days=1)).date():
-            print("Event structure: ", event.get("statusType", {}))
             print(f"Game status: {event.get('statusType', {}).get('name', '')}")
-            with open(f"game_status_nba_{event.get('id')}.json", "w") as f:
-                json.dump(event, f)
             return event.get("statusType", {}).get("name", "")
         
     return None
