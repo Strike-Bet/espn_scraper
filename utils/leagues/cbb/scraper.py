@@ -10,8 +10,7 @@ def scrape_games(current_date: datetime) -> set:
 
     pst_date = current_date.astimezone(pytz.timezone('US/Pacific')) - timedelta(days=1) 
     formatted_date = format_date(pst_date)
-    url = f"{LEAGUE_ENDPOINTS['cbb']}?dates={formatted_date}/group/50"
-    
+    url = "https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?region=us&lang=en&contentorigin=espn&limit=300&calendartype=offdays&includeModules=videos&seasontype=2&groups=50&tz=America%2FNew_York"
     response = requests.get(url)
     game_ids = set()
 

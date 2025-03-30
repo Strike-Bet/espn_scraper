@@ -3,8 +3,7 @@ import json
 import os
 from datetime import datetime, timedelta
 from typing import Set, Dict, List
-from ..common.constants import STATUS_FINAL, STATUS_IN_PROGRESS, STATUS_SCHEDULED
-
+import pytz
 BOXSCORE_URL = "https://cdn.espn.com/core/mens-college-basketball/"
 print(BOXSCORE_URL)
 
@@ -73,14 +72,5 @@ def extract_game_data(game_id: str) -> Dict:
         
     return response.json()
 
-def extract_game_status(events: Dict, current_date: datetime) -> str:
-    """Extract game status from event data."""
-
-    for event in events:
-        event_date = event.get("date", "")
-        event_datetime = datetime.strptime(event_date, "%Y-%m-%dT%H:%M:%SZ")
-        
-        if current_date.date() <= event_datetime.date() <= (current_date + timedelta(days=1)).date():
-            return event.get("statusType", {}).get("name", "")
-        
-    return None
+def extract_game_status(competitions: List, current_date: datetime) -> str:
+    pass

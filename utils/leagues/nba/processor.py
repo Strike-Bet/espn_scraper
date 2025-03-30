@@ -12,6 +12,8 @@ import json
 import pytz
 from datetime import timedelta
 from unidecode import unidecode
+from thefuzz import process
+
 # Create timezone objects
 utc = pytz.UTC
 pacific = pytz.timezone('US/Pacific')
@@ -119,6 +121,9 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
     for game_id in game_ids:
         print(f"\nProcessing game {game_id}...")
         game_data = process_game_data(game_id, current_date)
+
+        # with open(f"players_nba_{game_id}.json", "w") as f:
+        #     json.dump(game_data, f)
        
         if game_data:
             print(f"Found {len(game_data)} players with stats")
@@ -154,7 +159,25 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
         utc_time = current_date.astimezone(utc)
         normalized_name = unidecode(event["player_name"])
         print(f"Normalized name: {normalized_name}")
+        
+        # Fuzzy matching for player name
+        player_match = None
         if normalized_name not in players:
+            print("Exact match not found, trying fuzzy matching...")
+            player_names = list(players.keys())
+            if player_names:
+                # Find the best match with a score
+                best_match, score = process.extractOne(normalized_name, player_names)
+                print(f"Best match: {best_match} with score {score}")
+                
+                # Use the match if the score is high enough (adjust threshold as needed)
+                if score >= 85:  # 85% similarity threshold
+                    player_match = best_match
+                    print(f"Using fuzzy match: {player_match}")
+        else:
+            player_match = normalized_name
+            
+        if not player_match:
             try:
                 event_time = datetime.fromisoformat(event["start_time"].replace('Z', '+00:00'))
                 print(f"Event time: {event_time}, utc time: {utc_time}")
@@ -177,21 +200,17 @@ def process_boxscores(game_ids: Set[str], current_date: datetime, testing_mode: 
                 print(f"Error parsing event time: {str(e)}")
             continue
         
-        if normalized_name not in players:
-            print("Player not found in game data, skipping")
-            continue
-   
         stat_type = BASKETBALL_STAT_MAP.get(event["stat_type"])
         if not stat_type:
             print(f"Stat type {event['stat_type']} not found in BASKETBALL_STAT_MAP")
             continue
 
         print("Calculating updated stat value...")
-        updated_stat = calculate_stat_value(stat_type, players[normalized_name])
+        updated_stat = calculate_stat_value(stat_type, players[player_match])
         print(f"New stat value: {updated_stat}")
         
         print("Updating betting event...")
-        updated_event = update_betting_event(event, players[normalized_name], updated_stat, testing_mode, testing)
+        updated_event = update_betting_event(event, players[player_match], updated_stat, testing_mode, testing)
         
         if updated_event:
             new_betting_events.append(updated_event)

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-from datetime import datetime
-import pytz
+from app import scrape_all_games
 import logging
 
 # Configure logging
@@ -8,15 +7,12 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger('espn_scraper_runner')
-
-# Import the scraping function directl
-from tasks import scrape_all_games
+logger = logging.getLogger('espn_scraper_cron')
 
 if __name__ == "__main__":
-    logger.info("Starting ESPN scraper job")
+    logger.info("Starting scheduled ESPN scraper job")
     try:
-        result = scrape_all_games()
-        logger.info(f"Scraper job completed with result: {result}")
+        results = scrape_all_games()
+        logger.info(f"Scheduled scraper job completed with results: {results}")
     except Exception as e:
-        logger.error(f"Scraper job failed with error: {str(e)}")
+        logger.error(f"Scheduled scraper job failed with error: {str(e)}") 

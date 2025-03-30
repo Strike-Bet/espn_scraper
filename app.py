@@ -1,85 +1,147 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
-from rq_scheduler import Scheduler
 from utils.leagues.nba import scraper as nba_scraper
 from utils.leagues.nfl import scraper as nfl_scraper
 from utils.leagues.nba import processor as nba_processor
 from utils.leagues.nfl import processor as nfl_processor
-from datetime import datetime, timedelta, timezone
+from utils.leagues.cbb import scraper as cbb_scraper
+from utils.leagues.cbb import processor as cbb_processor
+from datetime import datetime
 from dotenv import load_dotenv
 import pytz
 import os
-from worker import default_queue, get_job_status, redis_conn
-from tasks import scrape_all_games
-from rq.job import Job
-from rq.worker import Worker
-from redis import Redis
-import ssl
-from utils.job_service import JobService
-import platform
-import requests
-import psutil
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('espn_scraper')
 
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Initialize scheduler
-scheduler = Scheduler(queue=default_queue, connection=redis_conn)
-
-# Initialize job service
-job_service = JobService()
-
-redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
-ssl_context = ssl.create_default_context()
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
-
-redis_conn = Redis.from_url(
-    redis_url,
-    ssl_cert_reqs=ssl.CERT_NONE
-)
-
-@app.route("/espn-scraper/start", methods=['POST'])
-def start_scraper_job():
-    """Start a new scraper job and schedule recurring execution"""
+def scrape_all_games():
+    """Function to scrape both NBA, NFL, and CBB games"""
+    job_start_time = datetime.now(pytz.timezone('US/Pacific'))
+    logger.info(f"Starting scraper job at {job_start_time}")
+    
     try:
-        # Check for existing scheduled jobs
-        existing_jobs = scheduler.get_jobs()
-        job_exists = any(job.func_name == 'scrape_all_games' for job in existing_jobs)
+        current_date = datetime.now()
+        results = {
+            'nba': {'status': 'pending'},
+            'nfl': {'status': 'pending'}, 
+            'cbb': {'status': 'pending'}
+        }
+
+        # Process NBA games
+        try:
+            logger.info("Starting NBA games scraping...")
+            nba_game_ids = nba_scraper.scrape_games(current_date)
+            logger.info(f"Found {len(nba_game_ids)} NBA games: {nba_game_ids}")
+            
+            logger.info("Processing NBA boxscores...")
+            completed = nba_processor.process_boxscores(nba_game_ids, current_date, testing_mode=False, testing="")
+            if completed:
+                results['nba'] = {
+                    'status': 'success',
+                    'game_count': len(nba_game_ids),
+                    'game_ids': nba_game_ids
+                }
+            else:
+                logger.info("NBA processing failed")
+                results['nba'] = {
+                    'status': 'error',
+                    'error': 'NBA processing failed'
+                }
+        except Exception as e:
+            logger.error(f"Error processing NBA games: {str(e)}", exc_info=True)
+            results['nba'] = {
+                'status': 'error',
+                'error': str(e)
+            }
+
+        # Process NFL games
+        try:
+            logger.info("Starting NFL games scraping...")
+            nfl_game_ids = nfl_scraper.scrape_games(current_date)
+            logger.info(f"Found {len(nfl_game_ids)} NFL games: {nfl_game_ids}")
+            
+            logger.info("Processing NFL boxscores...")
+            nfl_processor.process_boxscores(nfl_game_ids, current_date, testing_mode=False, testing="")
+            results['nfl'] = {
+                'status': 'success',
+                'game_count': len(nfl_game_ids),
+                'game_ids': nfl_game_ids
+            }
+            logger.info("NFL processing completed successfully")
+        except Exception as e:
+            logger.error(f"Error processing NFL games: {str(e)}", exc_info=True)
+            results['nfl'] = {
+                'status': 'error',
+                'error': str(e)
+            }
         
-        if not job_exists:
-            # Schedule immediate job
-            job = default_queue.enqueue(scrape_all_games)
-            
-            # Schedule recurring job (every 3 minutes)
-            scheduler.schedule(
-                scheduled_time=datetime.now(pytz.timezone('US/Pacific')) + timedelta(minutes=3),
-                func=scrape_all_games,
-                interval=180  # 3 minutes in seconds
-            )
-            
-            return jsonify({
-                'message': 'Scraper job started and scheduled',
-                'job_id': job.id
-            })
-        else:
-            return jsonify({
-                'message': 'Scraper job already scheduled',
-                'status': 'existing'
-            })
-            
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Process CBB games
+        try:
+            logger.info("Starting CBB games scraping...")
+            cbb_game_ids = cbb_scraper.scrape_games(current_date)
+            logger.info(f"Found {len(cbb_game_ids)} CBB games: {cbb_game_ids}")
+            completed = cbb_processor.process_boxscores(cbb_game_ids, current_date, testing_mode=False, testing="")
+            if completed:
+                results['cbb'] = {
+                    'status': 'success',
+                    'game_count': len(cbb_game_ids),
+                    'game_ids': cbb_game_ids
+                }
+        except Exception as e:
+            logger.error(f"Error processing CBB games: {str(e)}", exc_info=True)
+            results['cbb'] = {
+                'status': 'error',
+                'error': str(e)
+            }
 
-@app.route("/espn-scraper/job/<job_id>", methods=['GET'])
-def check_job_status(job_id):
-    """Check status of a specific job"""
-    try:
-        status = get_job_status(job_id)
-        return jsonify(status)
+        job_end_time = datetime.now(pytz.timezone('US/Pacific'))
+        duration = (job_end_time - job_start_time).total_seconds()
+        logger.info(f"Scraper job completed in {duration:.2f} seconds")
+        logger.info(f"Final results: {results}")
+        return results
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Fatal error in scraper job: {str(e)}", exc_info=True)
+        return {'error': str(e)}
+
+
+def scrape_cbb_games():
+    job_start_time = datetime.now(pytz.timezone('US/Pacific'))
+    logger.info(f"Starting scraper job at {job_start_time}")
+    
+    try:
+        current_date = datetime.now()
+        results = {
+            'cbb': {'status': 'pending'}
+        }
+
+        logger.info("Starting CBB games scraping...")
+        cbb_game_ids = cbb_scraper.scrape_games(current_date)
+        logger.info(f"Found {len(cbb_game_ids)} CBB games: {cbb_game_ids}")
+        completed = cbb_processor.process_boxscores(cbb_game_ids, current_date, testing_mode=False, testing="")
+        if completed:
+            results['cbb'] = {
+                'status': 'success',
+                'game_count': len(cbb_game_ids),
+                'game_ids': cbb_game_ids
+            }
+    except Exception as e:
+            logger.error(f"Error processing CBB games: {str(e)}", exc_info=True)
+            results['cbb'] = {
+                'status': 'error',
+                'error': str(e)
+            }
+            
+            
+
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -89,141 +151,27 @@ def health_check():
         "timestamp": current_time
     }), 200
 
-@app.route('/redis-health', methods=['GET'])
-def redis_health():
+
+@app.route('/run-scraper', methods=['GET'])
+def run_scraper():
+    """Endpoint to manually trigger the scraper"""
     try:
-        redis_conn.ping()
+        results = scrape_all_games()
         return jsonify({
-            "status": "healthy",
-            "message": "Redis connection successful"
+            "status": "success",
+            "results": results
         }), 200
     except Exception as e:
         return jsonify({
-            "status": "unhealthy",
+            "status": "error",
             "error": str(e)
-        }), 500
-
-@app.route('/workers-health', methods=['GET'])
-def workers_health():
-    try:
-        # Convert generator to list before getting length
-        workers = list(Worker.all(connection=redis_conn))
-        scheduler_jobs = list(scheduler.get_jobs())
-
-
-        
-        return jsonify({
-            "status": "healthy",
-            "active_workers": len(workers),
-            "queued_jobs": len(default_queue.jobs),
-            "scheduled_jobs": len(scheduler_jobs),
-            "failed_jobs": len(default_queue.failed_job_registry)
-        }), 200
-    except Exception as e:
-        return jsonify({
-            "status": "unhealthy",
-            "error": str(e)
-        }), 500
-
-@app.route('/health/detailed', methods=['GET'])
-def detailed_health():
-    try:
-        # System info
-        system_info = {
-            "cpu_percent": psutil.cpu_percent(),
-            "memory_percent": psutil.virtual_memory().percent,
-            "disk_usage": psutil.disk_usage('/').percent,
-            "platform": platform.platform(),
-            "python_version": platform.python_version()
-        }
-
-        # Redis health
-        redis_healthy = False
-        redis_error = None
-        try:
-            redis_conn.ping()
-            redis_healthy = True
-        except Exception as e:
-            redis_error = str(e)
-
-        # Worker status
-        workers = list(Worker.all(connection=redis_conn))
-        scheduler_jobs = list(scheduler.get_jobs())
-
-        # Recent jobs status
-        query = """
-        query GetRecentJobsEspn {
-          jobs_espn(order_by: {start_time: desc}, limit: 10) {
-            job_id
-            task_name
-            status
-            start_time
-            end_time
-          }
-        }
-        """
-        recent_jobs = requests.post(
-            f"https://lasting-scorpion-21.hasura.app/v1/graphql",
-            json={"query": query},
-            headers=job_service.headers
-        ).json()["data"]["jobs_espn"]
-
-        #if recent_jobs is empty, set it to an empty list
-        if not recent_jobs:
-            recent_jobs = []
-            return jsonify({
-                "status": "healthy" if redis_healthy else "degraded",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "components": {
-                    "redis": {
-                        "status": "healthy" if redis_healthy else "unhealthy",
-                        "error": redis_error
-                    },
-                    "recent_jobs": recent_jobs
-                }
-            }), 200
-
-        
-
-
-
-
-        return jsonify({
-            "status": "healthy" if redis_healthy else "degraded",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "components": {
-                "redis": {
-                    "status": "healthy" if redis_healthy else "unhealthy",
-                    "error": redis_error
-                },
-                "workers": {
-                    "active_count": len(workers),
-                    "worker_ids": [str(w.key) for w in workers]
-                },
-                "scheduler": {
-                    "job_count": len(scheduler_jobs),
-                    "next_jobs": [
-                        {"func": job.func_name, "scheduled_for": job.enqueued_at.isoformat() if job is not None else None}
-                        for job in scheduler_jobs[:5] if job is not None
-
-                    ]
-                },
-                "queue": {
-                    "queued_jobs": len(default_queue.jobs),
-                    "failed_jobs": len(default_queue.failed_job_registry)
-                }
-            },
-            "system": system_info,
-            "recent_jobs": recent_jobs
-        }), 200
-    except Exception as e:
-        print(e)
-        return jsonify({
-            "status": "unhealthy",
-            "error": str(e),
-            "timestamp": datetime.now(timezone.utc).isoformat()
         }), 500
 
 if __name__ == "__main__":
+    # Run the initial scrape
+    logger.info("Running initial scraper job")
+    scrape_all_games()
+    
+    # Start the Flask app
     port = int(os.environ.get("PORT", 8000))
     app.run(host='0.0.0.0', port=port)
